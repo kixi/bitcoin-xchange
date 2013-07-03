@@ -28,8 +28,8 @@ trait AccountEvent extends Event {
 case class CreateOrderBook(id: OrderBookId) extends OrderBookCommand
 case class OrderBookCreated(id: OrderBookId) extends OrderBookEvent
 
-case class PlaceOrder(id: OrderBookId, order: OrderInfo) extends OrderBookCommand
-case class OrderPlaced(id: OrderBookId, order: OrderInfo) extends OrderBookEvent
+case class PlaceOrder(id: OrderBookId, order: LimitOrder) extends OrderBookCommand
+case class OrderPlaced(id: OrderBookId, order: LimitOrder) extends OrderBookEvent
 
 case class OpenAccount(id: AccountId) extends AccountCommand
 case class AccountOpened(id: AccountId, balance: Balances) extends AccountEvent
