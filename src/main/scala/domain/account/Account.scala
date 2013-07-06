@@ -1,15 +1,8 @@
 package domain.account
 
 import domain._
-import domain.account.Account
-import domain.account.Account
-import domain.account.Account
-import domain.account.Account
-import domain.account.Account
 import domain.UnhandledEventException
-import domain.account.Account
 import domain.Balances
-import domain.MoneyWithdrawn
 import domain.AccountId
 import domain.InsufficientFundsException
 import domain.Money
@@ -31,20 +24,32 @@ class AccountFactory extends AggregateFactory[Account, AccountEvent] {
 
   override def applyEvent(e: AccountEvent) = {
     e match {
-      case event: AccountOpened => new Account(event :: Nil, 0, event.id, event.balance)
+      case event: AccountOpened => new Account(event :: Nil, 0, event.id, Map.empty[TransactionId, Money], event.balance)
       case event => throw new UnhandledEventException("Aggregate Account does not handle event " + event)
     }
   }
 }
 
-case class Account(uncommittedEvents:List[AccountEvent], version: Int, id: AccountId, balance: Balances) extends AggregateRoot[Account, AccountEvent] {
+case class Account(
+                    uncommittedEvents:List[AccountEvent],
+                    version: Int,
+                    id: AccountId,
+                    requestedWithdrawals:Map[TransactionId, Money],
+                    balance: Balances) extends AggregateRoot[Account, AccountEvent] {
 
 
   def markCommitted = copy(uncommittedEvents = Nil)
 
-  def withdrawMoney(amount: Money): Account = {
+  def requestMoneyWithdrawal(withdrawalId: TransactionId, amount: Money): Account = {
     ensureSufficientFunds(amount)
-    applyEvent(MoneyWithdrawn(id, balance - amount))
+    applyEvent(MoneyWithdrawalRequested(id, withdrawalId, amount, balance - amount))
+  }
+
+  def confirmMoneyWithdrawal(withdrawalId: TransactionId): Account = {
+    if (!requestedWithdrawals.contains(withdrawalId)) {
+      throw new InvalidWithdrawalException("Withdrawal with id " + id +" was not found. Cannot confirm it")
+    }
+    applyEvent(MoneyWithdrawalConfirmed(id, withdrawalId))
   }
 
   def depositMoney(amount: Money): Account = {
@@ -53,28 +58,34 @@ case class Account(uncommittedEvents:List[AccountEvent], version: Int, id: Accou
 
   def ensureSufficientFunds(amount: Money) {
     if (balance(amount.currency) < amount)
-      throw new InsufficientFundsException("Not enough funds to place order")
+      throw new InsufficientFundsException("Not enough funds to place order. Current balance :"+balance(amount.currency)+". Amount requested:"+amount)
   }
 
   def applyEvent(e: AccountEvent) = {
     e match {
       case event: AccountOpened => when(event)
       case event: MoneyDeposited => when(event)
-      case event: MoneyWithdrawn => when(event)
+      case event: MoneyWithdrawalRequested => when(event)
+      case event: MoneyWithdrawalConfirmed => when(event)
       case event => throw new UnhandledEventException("Aggregate Account does not handle event " + event)
     }
   }
 
   def when(e: AccountOpened): Account = {
-    Account(e :: uncommittedEvents,0, e.id,  e.balance)
+    Account(e :: uncommittedEvents,0, e.id, Map.empty[TransactionId, Money], e.balance)
   }
 
   def when(e: MoneyDeposited): Account =  {
     copy(uncommittedEvents = e :: uncommittedEvents, balance = e.balance)
   }
 
-  def when(e: MoneyWithdrawn): Account =  {
-    copy(uncommittedEvents = e :: uncommittedEvents, balance = e.balance)
+  def when(e: MoneyWithdrawalRequested): Account =  {
+    copy(uncommittedEvents = e :: uncommittedEvents, requestedWithdrawals=requestedWithdrawals + (e.transactionId -> e.amount), balance = e.balance)
   }
+
+  def when(e: MoneyWithdrawalConfirmed): Account =  {
+    copy(uncommittedEvents = e :: uncommittedEvents, requestedWithdrawals=requestedWithdrawals - (e.transactionId))
+  }
+
 }
 

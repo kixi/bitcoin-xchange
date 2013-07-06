@@ -10,4 +10,6 @@ package domain
 
 
 trait OrderInfo
-case class LimitOrder (val product: CurrencyUnit,val quantity: Quantity, val pricePerUnit: Money, val account: AccountId) extends OrderInfo
+case class LimitOrder (val product: CurrencyUnit,val quantity: Quantity, val pricePerUnit: Money, val account: AccountId) extends OrderInfo {
+  def amount = pricePerUnit * quantity
+}

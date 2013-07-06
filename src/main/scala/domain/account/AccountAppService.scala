@@ -9,7 +9,6 @@ import domain.OpenAccount
 import domain.account.Account
 import domain.DepositMoney
 import domain.AccountId
-import domain.WithdrawMoney
 import cqrs.{EventStore, ApplicationService}
 
 /**
@@ -26,15 +25,20 @@ class AccountAppService(val eventStore: EventStore) extends Actor with Applicati
   override def receive = {
     case c: OpenAccount => when(c)
     case c: DepositMoney => when(c)
-    case c: WithdrawMoney => when(c)
+    case c: RequestMoneyWithdrawal => when(c)
+    case c: ConfirmMoneyWithdrawal => when(c)
   }
 
   def when(cmd: DepositMoney) {
     update(cmd.id, (a:Account) => a.depositMoney(cmd.amount))
   }
 
-  def when(cmd: WithdrawMoney) {
-    update(cmd.id, (a:Account)=> a.withdrawMoney(cmd.amount))
+  def when(cmd: RequestMoneyWithdrawal) {
+    update(cmd.id, (a:Account)=> a.requestMoneyWithdrawal(cmd.transactionId, cmd.amount))
+  }
+
+  def when(cmd: ConfirmMoneyWithdrawal) {
+    update(cmd.id, (a:Account)=> a.confirmMoneyWithdrawal(cmd.transactionId))
   }
 
   def when(cmd: OpenAccount) {

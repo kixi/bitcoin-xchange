@@ -28,8 +28,14 @@ trait AccountEvent extends Event {
 case class CreateOrderBook(id: OrderBookId) extends OrderBookCommand
 case class OrderBookCreated(id: OrderBookId) extends OrderBookEvent
 
-case class PlaceOrder(id: OrderBookId, order: LimitOrder) extends OrderBookCommand
-case class OrderPlaced(id: OrderBookId, order: LimitOrder) extends OrderBookEvent
+case class PlaceOrder(id: OrderBookId, transactionId: TransactionId, order: LimitOrder) extends OrderBookCommand
+case class OrderPlaced(id: OrderBookId, transactionId: TransactionId, order: LimitOrder) extends OrderBookEvent
+
+case class PrepareOrderPlacement(id: OrderBookId, transactionId: TransactionId, orderId: OrderId, order:LimitOrder) extends OrderBookCommand
+case class OrderPlacementPrepared(id: OrderBookId, transactionId: TransactionId, orderId: OrderId, order:LimitOrder) extends OrderBookEvent
+
+case class ConfirmOrderPlacement(id: OrderBookId, transactionId: TransactionId, orderId: OrderId, order:LimitOrder) extends OrderBookCommand
+case class OrderPlacementConfirmed(id: OrderBookId, transactionId: TransactionId, orderId: OrderId) extends OrderBookEvent
 
 case class OpenAccount(id: AccountId) extends AccountCommand
 case class AccountOpened(id: AccountId, balance: Balances) extends AccountEvent
@@ -37,6 +43,9 @@ case class AccountOpened(id: AccountId, balance: Balances) extends AccountEvent
 case class DepositMoney(id: AccountId, amount: Money) extends AccountCommand
 case class MoneyDeposited(id: AccountId, balance: Balances) extends AccountEvent
 
-case class WithdrawMoney(id: AccountId, amount: Money) extends AccountCommand
-case class MoneyWithdrawn(id: AccountId, balance: Balances) extends AccountEvent
+case class RequestMoneyWithdrawal(id: AccountId, transactionId: TransactionId, amount: Money) extends AccountCommand
+case class MoneyWithdrawalRequested(id: AccountId, transactionId: TransactionId, amount: Money, balance: Balances) extends AccountEvent
+
+case class ConfirmMoneyWithdrawal(id: AccountId, transactionId: TransactionId) extends AccountCommand
+case class MoneyWithdrawalConfirmed(id: AccountId, transactionId: TransactionId) extends AccountEvent
 

@@ -7,7 +7,6 @@ import domain.OpenAccount
 import domain.account.Account
 import domain.DepositMoney
 import domain.AccountId
-import domain.WithdrawMoney
 import cqrs.{EventStore, ApplicationService}
 
 /**
@@ -23,7 +22,9 @@ class OrderBookAppService(val eventStore: EventStore) extends Actor with Applica
 
    override def receive = {
      case c: CreateOrderBook => insert(c.id, (Unit) => factory.create(c.id))
-     case c: PlaceOrder => update(c.id, _.placeOrder(c.order))
+     case c: PlaceOrder => update(c.id, _.placeOrder(c.transactionId, c.order))
+     case c: PrepareOrderPlacement => update(c.id, _.prepareOrderPlacement(c.orderId, c.transactionId, c.order))
+     case c: ConfirmOrderPlacement => update(c.id, _.confirmOrderPlacement(c.orderId, c.transactionId))
    }
 
   }

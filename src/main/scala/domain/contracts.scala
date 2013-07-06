@@ -12,4 +12,12 @@ trait Identity {
 }
 
 case class OrderBookId(id: String) extends Identity
+
 case class AccountId(id: String) extends Identity
+
+case class TransactionId(id: String) extends Identity
+
+case class OrderId(id: String) extends Identity
+object OrderId {
+  def create = OrderId("1")
+}

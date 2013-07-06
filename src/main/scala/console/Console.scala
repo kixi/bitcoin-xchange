@@ -13,6 +13,7 @@ import akka.dispatch.Await
 import domain.account.AccountAppService
 import cqrs.EventStore
 import domain.orderbook.OrderBookAppService
+import domain.sagas.SagaRouter
 
 /**
  * Created with IntelliJ IDEA.
@@ -49,7 +50,7 @@ object Console {
   }
 }
 
-case class ConsoleEnvironment(account: ActorRef, orderbook: ActorRef, eventStore: EventStore, accountProjection: ActorRef) {
+case class ConsoleEnvironment(commandBus: ActorRef, eventStore: EventStore, accountProjection: ActorRef) {
   val commandList = List(
     new DepositMoneyCmd(),
     new ListAccountsCmd(),
@@ -67,17 +68,20 @@ object ConsoleEnvironment {
   def buildEnvironment = {
     val system = ActorSystem("Bitcoin-XChange")
     val handler = system.actorOf(Props(new SynchronousEventHandler()))
+    val eventStore = new InMemoryEventStore(handler)
+    val accountService = system.actorOf(Props(new AccountAppService(eventStore)) )
+    val orderBookService = system.actorOf(Props(new OrderBookAppService(eventStore)) )
+
+    val commandBus = system.actorOf(Props(new CommandBus(accountService, orderBookService)))
 
     val accountView = system.actorOf(Props(new AccountProjection()))
     handler ! SubscribeMsg(accountView)
     handler ! SubscribeMsg(system.actorOf(Props(new LoggingProjection())))
+    handler ! SubscribeMsg(system.actorOf(Props(new SagaRouter(commandBus))))
 
-    val eventStore = new InMemoryEventStore(handler)
 
-    val accountService = system.actorOf(Props(new AccountAppService(eventStore)) )
-    val orderBookService = system.actorOf(Props(new OrderBookAppService(eventStore)) )
 
-    ConsoleEnvironment(accountService, orderBookService, eventStore, accountView)
+    ConsoleEnvironment(commandBus, eventStore, accountView)
   }
 }
 
@@ -92,7 +96,7 @@ class OpenAccountCmd extends ConsoleCommand {
   override def cmdString = "openAccount"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.account ! (OpenAccount(AccountId(args(0))))
+    env.commandBus ! (OpenAccount(AccountId(args(0))))
   }
 }
 
@@ -100,7 +104,7 @@ class DepositMoneyCmd extends ConsoleCommand {
   override def cmdString = "deposit"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.account ! (DepositMoney(AccountId(args(0)), Money(BigDecimal(args(1)), CurrencyUnit(args(2)))))
+    env.commandBus ! (DepositMoney(AccountId(args(0)), Money(BigDecimal(args(1)), CurrencyUnit(args(2)))))
   }
 }
 
@@ -108,7 +112,7 @@ class CreateOrderBookCmd extends ConsoleCommand {
   override def cmdString = "createOrderBook"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.orderbook ! CreateOrderBook(OrderBookId(args(0)))
+    env.commandBus ! CreateOrderBook(OrderBookId(args(0)))
   }
 }
 
@@ -116,7 +120,7 @@ class PlaceOrderCmd extends ConsoleCommand {
   override def cmdString = "placeOrder"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.orderbook ! PlaceOrder(OrderBookId(args(0)), LimitOrder(CurrencyUnit(args(1)), BigDecimal(args(2)), Money(BigDecimal(args(3)), CurrencyUnit(args(4))), AccountId(args(5))))
+    env.commandBus ! PlaceOrder(OrderBookId(args(0)), TransactionId(args(1)), LimitOrder(CurrencyUnit(args(2)), BigDecimal(args(3)), Money(BigDecimal(args(4)), CurrencyUnit(args(5))), AccountId(args(6))))
   }
 }
 
@@ -135,6 +139,7 @@ class ExitCmd extends ConsoleCommand {
   override def cmdString = "exit"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
+    ActorSystem("Bitcoin-XChange").shutdown()
     System.exit(0)
   }
 }
