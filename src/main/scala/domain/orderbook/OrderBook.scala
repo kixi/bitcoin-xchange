@@ -3,7 +3,6 @@ package domain.orderbook
 import domain._
 import cqrs.{AggregateFactory, AggregateRoot}
 import domain.UnhandledEventException
-import domain.orderbook.OrderBook
 import domain.OrderBookCreated
 import domain.OrderBookId
 

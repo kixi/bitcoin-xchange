@@ -20,11 +20,11 @@ import cqrs.{AggregateFactory, AggregateRoot}
 
 class AccountFactory extends AggregateFactory[Account, AccountEvent] {
 
-  def create(id: AccountId) = applyEvent(AccountOpened(id, new Balances()))
+  def create(id: AccountId, currency: CurrencyUnit) = applyEvent(AccountOpened(id, currency, new Balances()))
 
   override def applyEvent(e: AccountEvent) = {
     e match {
-      case event: AccountOpened => new Account(event :: Nil, 0, event.id, Map.empty[TransactionId, Money], event.balance)
+      case event: AccountOpened => new Account(event :: Nil, 0, event.id, event.currency, Map.empty[TransactionId, Money], event.balance)
       case event => throw new UnhandledEventException("Aggregate Account does not handle event " + event)
     }
   }
@@ -34,6 +34,7 @@ case class Account(
                     uncommittedEvents:List[AccountEvent],
                     version: Int,
                     id: AccountId,
+                    currency: CurrencyUnit,
                     requestedWithdrawals:Map[TransactionId, Money],
                     balance: Balances) extends AggregateRoot[Account, AccountEvent] {
 
@@ -72,7 +73,7 @@ case class Account(
   }
 
   def when(e: AccountOpened): Account = {
-    Account(e :: uncommittedEvents,0, e.id, Map.empty[TransactionId, Money], e.balance)
+    Account(e :: uncommittedEvents,0, e.id, e.currency, Map.empty[TransactionId, Money], e.balance)
   }
 
   def when(e: MoneyDeposited): Account =  {

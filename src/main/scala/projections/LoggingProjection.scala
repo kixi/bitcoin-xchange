@@ -14,6 +14,6 @@ import akka.actor.Actor
 class LoggingProjection extends Actor {
   val logger = Logger(classOf[LoggingProjection])
    def receive = {
-     case e => System.console.printf(e.toString+"\n")
+     case e => System.out.printf(e.toString+"\n")
    }
   }

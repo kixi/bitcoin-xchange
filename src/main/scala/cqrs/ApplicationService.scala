@@ -1,6 +1,5 @@
 package cqrs
 
-import cqrs.{AggregateFactory, AggregateRoot}
 import domain.{Event, AggregateNotFoundException, Identity}
 
 /**

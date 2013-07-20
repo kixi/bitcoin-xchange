@@ -6,14 +6,27 @@ import domain._
 import domain.DepositMoney
 import util.{SubscribeMsg, InMemoryEventStore, SynchronousEventHandler}
 import projections.{ListAccounts, LoggingProjection, AccountProjection}
-import akka.actor.{Props, ActorRef, ActorSystem}
-import akka.util.Timeout
+import akka.actor._
+import akka.util.{Duration, Timeout}
 import akka.util.duration._
 import akka.dispatch.Await
 import domain.account.AccountAppService
 import cqrs.EventStore
 import domain.orderbook.OrderBookAppService
 import domain.sagas.SagaRouter
+import com.typesafe.config.ConfigFactory
+import domain.CreateOrderBook
+import domain.Money
+import domain.OpenAccount
+import scala.Some
+import domain.DepositMoney
+import domain.CurrencyUnit
+import domain.LimitOrder
+import domain.AccountId
+import projections.ListAccounts
+import domain.OrderBookId
+import domain.PlaceOrder
+import domain.TransactionId
 
 /**
  * Created with IntelliJ IDEA.
@@ -29,6 +42,7 @@ object Console {
     log.info("Starting bitcoin-exchange console ...")
 
     val env = ConsoleEnvironment.buildEnvironment
+
     val cons = System.console()
     while (true) {
       Thread.sleep(300)
@@ -50,10 +64,10 @@ object Console {
   }
 }
 
-case class ConsoleEnvironment(commandBus: ActorRef, eventStore: EventStore, accountProjection: ActorRef) {
-  val commandList = List(
+case class ConsoleEnvironment(commandBus: ActorRef) {
+    val commandList = List(
     new DepositMoneyCmd(),
-    new ListAccountsCmd(),
+ //   new ListAccountsCmd(),
     new OpenAccountCmd(),
     new CreateOrderBookCmd(),
     new PlaceOrderCmd(),
@@ -66,25 +80,20 @@ case class ConsoleEnvironment(commandBus: ActorRef, eventStore: EventStore, acco
 
 object ConsoleEnvironment {
   def buildEnvironment = {
-    val system = ActorSystem("Bitcoin-XChange")
-    val handler = system.actorOf(Props(new SynchronousEventHandler()))
-    val eventStore = new InMemoryEventStore(handler)
-    val accountService = system.actorOf(Props(new AccountAppService(eventStore)) )
-    val orderBookService = system.actorOf(Props(new OrderBookAppService(eventStore)) )
+    val system = ActorSystem("bitcoin-xchange", ConfigFactory.load.getConfig("remotelookup"))
+    val remotePath =
+      "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
+    val commandBusServer = system.actorFor(remotePath)
 
-    val commandBus = system.actorOf(Props(new CommandBus(accountService, orderBookService)))
-
-    val accountView = system.actorOf(Props(new AccountProjection()))
-    handler ! SubscribeMsg(accountView)
-    handler ! SubscribeMsg(system.actorOf(Props(new LoggingProjection())))
-    handler ! SubscribeMsg(system.actorOf(Props(new SagaRouter(commandBus))))
-
-
-
-    ConsoleEnvironment(commandBus, eventStore, accountView)
+    val commandBus = system.actorOf(Props(new LookupActor(commandBusServer)),"command-bus-client")
+    ConsoleEnvironment(commandBus)
   }
 }
-
+class LookupActor(actor: ActorRef) extends Actor {
+  def receive = {
+    case op ⇒ actor ! op
+  }
+}
 
 trait ConsoleCommand {
   def cmdString: String
@@ -96,15 +105,17 @@ class OpenAccountCmd extends ConsoleCommand {
   override def cmdString = "openAccount"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.commandBus ! (OpenAccount(AccountId(args(0))))
-  }
+      env.commandBus ! (OpenAccount(AccountId(args(0)), CurrencyUnit(args(1))))
+   }
 }
 
 class DepositMoneyCmd extends ConsoleCommand {
   override def cmdString = "deposit"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.commandBus ! (DepositMoney(AccountId(args(0)), Money(BigDecimal(args(1)), CurrencyUnit(args(2)))))
+    for (i <- 0 to 100000) {
+      env.commandBus ! (DepositMoney(AccountId(i.toString), Money(BigDecimal(args(1)), CurrencyUnit(args(2)))))
+    }
   }
 }
 
@@ -120,10 +131,10 @@ class PlaceOrderCmd extends ConsoleCommand {
   override def cmdString = "placeOrder"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.commandBus ! PlaceOrder(OrderBookId(args(0)), TransactionId(args(1)), LimitOrder(CurrencyUnit(args(2)), BigDecimal(args(3)), Money(BigDecimal(args(4)), CurrencyUnit(args(5))), AccountId(args(6))))
+      env.commandBus ! PlaceOrder(OrderBookId(args(0)), TransactionId(args(1)), LimitOrder(CurrencyUnit(args(2)), BigDecimal(args(3)), Money(BigDecimal(args(4)), CurrencyUnit(args(5))), AccountId(args(6))))
   }
 }
-
+/*
 class ListAccountsCmd extends ConsoleCommand {
   override def cmdString = "listAccounts"
 
@@ -135,6 +146,7 @@ class ListAccountsCmd extends ConsoleCommand {
         System.console.printf("%10s %10s %3s\n", id, balance.amount.toString, balance.currency.iso)
    }
 }
+*/
 class ExitCmd extends ConsoleCommand {
   override def cmdString = "exit"
 

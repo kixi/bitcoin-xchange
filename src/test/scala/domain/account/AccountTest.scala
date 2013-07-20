@@ -16,7 +16,7 @@ import domain.AccountId
  */
 class AccountTest extends FunSuite {
   test("request withdrawal ok") {
-    val account = new AccountFactory().create(new AccountId("1"))
+    val account = new AccountFactory().create(new AccountId("1"), new CurrencyUnit("EUR"))
     .depositMoney(Money(100, CurrencyUnit("EUR")))
     .markCommitted
 
@@ -27,7 +27,7 @@ class AccountTest extends FunSuite {
 
   test("request withdrawal over limit") {
     intercept[InsufficientFundsException] {
-    val account = new AccountFactory().create(new AccountId("1"))
+    val account = new AccountFactory().create(new AccountId("1"), new CurrencyUnit("EUR"))
       .markCommitted
 
       .requestMoneyWithdrawal(TransactionId("1"),Money(100, CurrencyUnit("EUR")))
@@ -35,7 +35,7 @@ class AccountTest extends FunSuite {
   }
 
   test("confirm withdrawal ok") {
-    val account = new AccountFactory().create(new AccountId("1"))
+    val account = new AccountFactory().create(new AccountId("1"), new CurrencyUnit("EUR"))
       .depositMoney(Money(100, CurrencyUnit("EUR")))
       .requestMoneyWithdrawal(TransactionId("1"),Money(100, CurrencyUnit("EUR")))
       .markCommitted
@@ -46,7 +46,7 @@ class AccountTest extends FunSuite {
 
   test("confirm withdrawal - cannot confirm  same withdrawal twice") {
     intercept[InvalidWithdrawalException] {
-    val account = new AccountFactory().create(new AccountId("1"))
+    val account = new AccountFactory().create(new AccountId("1"), new CurrencyUnit("EUR"))
       .depositMoney(Money(100, CurrencyUnit("EUR")))
       .requestMoneyWithdrawal(TransactionId("1"),Money(100, CurrencyUnit("EUR")))
       .confirmMoneyWithdrawal(TransactionId("1"))
@@ -57,7 +57,7 @@ class AccountTest extends FunSuite {
 
   test("confirm withdrawal - cannot confirm  a withdrawal which was never requested") {
     intercept[InvalidWithdrawalException] {
-      val account = new AccountFactory().create(new AccountId("1"))
+      val account = new AccountFactory().create(new AccountId("1"), new CurrencyUnit("EUR"))
         .depositMoney(Money(100, CurrencyUnit("EUR")))
         .requestMoneyWithdrawal(TransactionId("1"),Money(100, CurrencyUnit("EUR")))
         .confirmMoneyWithdrawal(TransactionId("1"))

@@ -8,9 +8,9 @@ package domain
  * To change this template use File | Settings | File Templates.
  */
 
-trait Message
+sealed trait Message extends Serializable
 trait Command extends Message
-trait Event
+trait Event extends Message
 trait OrderBookCommand extends Command {
   def id: OrderBookId
 }
@@ -37,8 +37,8 @@ case class OrderPlacementPrepared(id: OrderBookId, transactionId: TransactionId,
 case class ConfirmOrderPlacement(id: OrderBookId, transactionId: TransactionId, orderId: OrderId, order:LimitOrder) extends OrderBookCommand
 case class OrderPlacementConfirmed(id: OrderBookId, transactionId: TransactionId, orderId: OrderId) extends OrderBookEvent
 
-case class OpenAccount(id: AccountId) extends AccountCommand
-case class AccountOpened(id: AccountId, balance: Balances) extends AccountEvent
+case class OpenAccount(id: AccountId, currency: CurrencyUnit) extends AccountCommand
+case class AccountOpened(id: AccountId, currency: CurrencyUnit, balance: Balances) extends AccountEvent
 
 case class DepositMoney(id: AccountId, amount: Money) extends AccountCommand
 case class MoneyDeposited(id: AccountId, balance: Balances) extends AccountEvent

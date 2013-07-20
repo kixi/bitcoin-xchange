@@ -2,13 +2,7 @@ package domain.sagas
 
 import akka.actor._
 import domain._
-import domain.sagas.SagaData
-import domain.OrderPlaced
-import domain.LimitOrder
-import domain.AccountId
-import domain.OrderBookId
 import akka.actor.FSM.Normal
-import domain.sagas.SagaData
 import domain.RequestMoneyWithdrawal
 import domain.OrderPlaced
 import domain.LimitOrder
@@ -21,7 +15,6 @@ import domain.MoneyWithdrawalConfirmed
 import domain.MoneyWithdrawalRequested
 import domain.TransactionId
 import domain.OrderPlacementConfirmed
-import com.weiglewilczek.slf4s.Logger
 
 /**
  * Created with IntelliJ IDEA.
@@ -56,23 +49,23 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
   }
 
   when(WaitingForOrderBookApproval) {
-    case Event( e : MoneyWithdrawalRequested, x: SagaData) =>
+    case Event( e : OrderPlacementPrepared, x: SagaData) =>
       goto (WaitingForAccountConfirmation)
   }
 
   when(WaitingForAccountConfirmation) {
-    case Event( e : MoneyWithdrawalRequested, x: SagaData) =>
+    case Event( e : MoneyWithdrawalConfirmed, x: SagaData) =>
       goto (WaitingForOrderBookConfirmation)
   }
 
   when(WaitingForOrderBookConfirmation) {
-    case Event( e : MoneyWithdrawalRequested, x: SagaData) =>
+    case Event( e : OrderPlacementConfirmed, x: SagaData) =>
       goto (WaitingForAccountApproval)
   }
 
   onTransition {
     case Start -> WaitingForAccountApproval =>
-      stateData match {
+      nextStateData match {
         case SagaData(orderBookId, order, accountId, transactionId) =>
           commandReceiver !  RequestMoneyWithdrawal(accountId, transactionId, order.amount )
      }
@@ -86,8 +79,10 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
         case SagaData(orderBookId, order, accountId, transactionId) =>
           commandReceiver ! ConfirmMoneyWithdrawal(accountId, transactionId)
       }
-    case WaitingForAccountConfirmation -> WaitingForOrderBookConfirmation =>
+    case WaitingForAccountConfirmation -> WaitingForOrderBookConfirmation => {
       stop(Normal)
+    }
+
    }
 }
 
@@ -97,16 +92,21 @@ class SagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLoggin
   def receive = {
 
     case e : OrderPlaced => forward(e.transactionId, e)
-    case e : OrderPlacementPrepared => forward(e.transactionId, e)
     case e : MoneyWithdrawalRequested  => forward(e.transactionId, e)
-    case e : OrderPlacementConfirmed  => forward(e.transactionId, e)
+    case e : OrderPlacementPrepared => forward(e.transactionId, e)
     case e : MoneyWithdrawalConfirmed  => forward(e.transactionId, e)
+    case e : OrderPlacementConfirmed  => {
+      val Some(saga) = sagas.get(e.transactionId)
+      saga forward e
+      sagas = sagas - e.transactionId
+    }
   }
   def forward(transactionId : TransactionId, e: Event) {
     log.debug("Event received " + e)
-
-    val saga = sagas.getOrElse(transactionId, context.system.actorOf(Props(new PlaceOrderSaga(commandDispatcher))))
-    saga forward  e
+    if (!sagas.contains(transactionId))
+      sagas = sagas + (transactionId -> context.system.actorOf(Props(new PlaceOrderSaga(commandDispatcher))))
+    val Some(saga) = sagas.get(transactionId)
+    saga forward e
   }
 
 }

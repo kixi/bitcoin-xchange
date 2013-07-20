@@ -1,12 +1,8 @@
 package domain.account
 
 import akka.actor.Actor
-import domain.account.{AccountFactory, Account}
 import domain._
-import domain.account.Account
-import domain.account.Account
 import domain.OpenAccount
-import domain.account.Account
 import domain.DepositMoney
 import domain.AccountId
 import cqrs.{EventStore, ApplicationService}
@@ -42,7 +38,7 @@ class AccountAppService(val eventStore: EventStore) extends Actor with Applicati
   }
 
   def when(cmd: OpenAccount) {
-    insert(cmd.id, (Unit) =>  factory.create(cmd.id))
+    insert(cmd.id, (Unit) =>  factory.create(cmd.id, cmd.currency))
   }
 
  }
