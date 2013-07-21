@@ -1,16 +1,5 @@
 package util
 
-import akka.util.duration._
-import domain.{Event}
-import scala.collection._
-import akka.actor.{Props, Actor, ActorSystem, ActorRef}
-import cqrs.{EventStream, EventStore}
-import akka.dispatch.Await
-import akka.util.Timeout
-import akka.pattern.ask
-import com.redis.RedisClientPool
-import com.redis.serialization.{Parse, Format}
-import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 
 /**
  * Created with IntelliJ IDEA.

@@ -8,6 +8,7 @@ import domain.orderbook.OrderBookAppService
 import domain.CommandBus
 import projections.{LoggingProjection, AccountProjection}
 import domain.sagas.SagaRouter
+import com.typesafe.config.ConfigFactory
 
 /**
  * Created with IntelliJ IDEA.
@@ -24,12 +25,13 @@ object Service {
     log.info("Starting bitcoin-exchange service ...")
 
     ServiceEnvironment.buildEnvironment
+    log.info("Starting bitcoin-exchange up and running")
   }
 }
 
 object ServiceEnvironment {
   def buildEnvironment = {
-    val system = ActorSystem("bitcoin-xchange")
+    val system = ActorSystem("bitcoin-xchange",  ConfigFactory.load.getConfig("bitcoin-xchange"))
     val handler = system.actorOf(Props(new SynchronousEventHandler()), "event-handler")
     val eventStore = new InMemoryEventStore(system, handler)
     val accountService = system.actorOf(Props(new AccountAppService(eventStore)), "account-service" )

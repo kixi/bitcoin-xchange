@@ -2,18 +2,7 @@ package console
 
 import akka.pattern.{ ask, pipe }
 import com.weiglewilczek.slf4s.Logger
-import domain._
-import domain.DepositMoney
-import util.{SubscribeMsg, InMemoryEventStore, SynchronousEventHandler}
-import projections.{ListAccounts, LoggingProjection, AccountProjection}
 import akka.actor._
-import akka.util.{Duration, Timeout}
-import akka.util.duration._
-import akka.dispatch.Await
-import domain.account.AccountAppService
-import cqrs.EventStore
-import domain.orderbook.OrderBookAppService
-import domain.sagas.SagaRouter
 import com.typesafe.config.ConfigFactory
 import domain.CreateOrderBook
 import domain.Money
@@ -23,7 +12,6 @@ import domain.DepositMoney
 import domain.CurrencyUnit
 import domain.LimitOrder
 import domain.AccountId
-import projections.ListAccounts
 import domain.OrderBookId
 import domain.PlaceOrder
 import domain.TransactionId
@@ -80,18 +68,12 @@ case class ConsoleEnvironment(commandBus: ActorRef) {
 
 object ConsoleEnvironment {
   def buildEnvironment = {
-    val system = ActorSystem("bitcoin-xchange", ConfigFactory.load.getConfig("remotelookup"))
+    val system = ActorSystem("bitcoin-xchange",  ConfigFactory.load.getConfig("bitcoin-xchange-client"))
     val remotePath =
       "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
-    val commandBusServer = system.actorFor(remotePath)
+    val commandBus = system.actorFor(remotePath)
 
-    val commandBus = system.actorOf(Props(new LookupActor(commandBusServer)),"command-bus-client")
     ConsoleEnvironment(commandBus)
-  }
-}
-class LookupActor(actor: ActorRef) extends Actor {
-  def receive = {
-    case op ⇒ actor ! op
   }
 }
 
@@ -113,8 +95,8 @@ class DepositMoneyCmd extends ConsoleCommand {
   override def cmdString = "deposit"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    for (i <- 0 to 100000) {
-      env.commandBus ! (DepositMoney(AccountId(i.toString), Money(BigDecimal(args(1)), CurrencyUnit(args(2)))))
+    for (i <- 0 to 10000)   {
+      env.commandBus ! (DepositMoney(AccountId(args(0)), Money(BigDecimal(args(1)), CurrencyUnit(args(2)))))
     }
   }
 }

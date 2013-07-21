@@ -68,16 +68,19 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
       nextStateData match {
         case SagaData(orderBookId, order, accountId, transactionId) =>
           commandReceiver !  RequestMoneyWithdrawal(accountId, transactionId, order.amount )
+        case _ =>
      }
     case WaitingForAccountApproval -> WaitingForOrderBookApproval =>
       stateData match {
         case SagaData(orderBookId, order, accountId, transactionId) =>
           commandReceiver ! PrepareOrderPlacement(orderBookId, transactionId, OrderId("1"), order )
+        case _ =>
       }
     case WaitingForOrderBookApproval -> WaitingForAccountConfirmation =>
       stateData match {
         case SagaData(orderBookId, order, accountId, transactionId) =>
           commandReceiver ! ConfirmMoneyWithdrawal(accountId, transactionId)
+        case _ =>
       }
     case WaitingForAccountConfirmation -> WaitingForOrderBookConfirmation => {
       stop(Normal)
@@ -100,6 +103,7 @@ class SagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLoggin
       saga forward e
       sagas = sagas - e.transactionId
     }
+    case _ =>
   }
   def forward(transactionId : TransactionId, e: Event) {
     log.debug("Event received " + e)

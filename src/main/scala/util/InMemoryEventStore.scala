@@ -1,13 +1,13 @@
 package util
 
-import akka.util.duration._
 import domain.{Event}
 import scala.collection._
-import akka.actor.{Props, Actor, ActorSystem, ActorRef}
-import cqrs.{EventStream, EventStore}
-import akka.dispatch.Await
-import akka.util.Timeout
+import scala.concurrent.Await
 import akka.pattern.ask
+import scala.concurrent.duration._
+import akka.actor.{Actor, Props, ActorRef, ActorSystem}
+import cqrs.{EventStream, EventStore}
+import akka.util.Timeout
 
 /**
  * Created with IntelliJ IDEA.
@@ -18,12 +18,12 @@ import akka.pattern.ask
  */
 class InMemoryEventStore(as: ActorSystem, val eventHandler: ActorRef) extends EventStore {
 
-  lazy val logger = as.actorOf(Props(new EventStoreActor(eventHandler)).withDispatcher("my-pinned-dispatcher"))
+  lazy val logger = as.actorOf(Props(new EventStoreActor(eventHandler)))
   implicit val timeout = Timeout(20 seconds)
 
   def loadEventStream(id: String): EventStream = {
     val future = logger ? LoadEventStream(id)
-    Await.result(future, Timeout(20 seconds).duration).asInstanceOf[EventStream]
+    Await.result(future, timeout.duration).asInstanceOf[EventStream]
   }
 
   def appendEventsToStream(id: String, version: Int, events: List[Event]) {
