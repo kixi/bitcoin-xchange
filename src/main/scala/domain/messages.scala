@@ -38,13 +38,13 @@ case class ConfirmOrderPlacement(id: OrderBookId, transactionId: TransactionId, 
 case class OrderPlacementConfirmed(id: OrderBookId, transactionId: TransactionId, orderId: OrderId) extends OrderBookEvent
 
 case class OpenAccount(id: AccountId, currency: CurrencyUnit) extends AccountCommand
-case class AccountOpened(id: AccountId, currency: CurrencyUnit, balance: Balances) extends AccountEvent
+case class AccountOpened(id: AccountId, currency: CurrencyUnit, balance: Money) extends AccountEvent
 
 case class DepositMoney(id: AccountId, amount: Money) extends AccountCommand
-case class MoneyDeposited(id: AccountId, balance: Balances) extends AccountEvent
+case class MoneyDeposited(id: AccountId, balance: Money) extends AccountEvent
 
 case class RequestMoneyWithdrawal(id: AccountId, transactionId: TransactionId, amount: Money) extends AccountCommand
-case class MoneyWithdrawalRequested(id: AccountId, transactionId: TransactionId, amount: Money, balance: Balances) extends AccountEvent
+case class MoneyWithdrawalRequested(id: AccountId, transactionId: TransactionId, amount: Money, balance: Money) extends AccountEvent
 
 case class ConfirmMoneyWithdrawal(id: AccountId, transactionId: TransactionId) extends AccountCommand
 case class MoneyWithdrawalConfirmed(id: AccountId, transactionId: TransactionId) extends AccountEvent

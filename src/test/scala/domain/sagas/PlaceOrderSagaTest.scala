@@ -35,7 +35,7 @@ class PlaceOrderSagaTest extends TestKit(ActorSystem("test")) with FunSuite {
     fsm ! OrderPlaced(OrderBookId("1"), TransactionId("2"), LimitOrder(CurrencyUnit("BTC"), 5, Money(100, CurrencyUnit("EUR")), AccountId("3")))
 
     assert(commandDispatcher.underlyingActor.receivedCommands.head === RequestMoneyWithdrawal(AccountId("3"), TransactionId("2"), Money(500, CurrencyUnit("EUR"))))
-    fsm ! MoneyWithdrawalRequested(AccountId("3"), TransactionId("2"),Money(500, CurrencyUnit("EUR")), Balances(Map.empty[CurrencyUnit, Money]))
+    fsm ! MoneyWithdrawalRequested(AccountId("3"), TransactionId("2"),Money(500, CurrencyUnit("EUR")), Money(0, CurrencyUnit("EUR")))
 
     assert(commandDispatcher.underlyingActor.receivedCommands.head === PrepareOrderPlacement(OrderBookId("1"), TransactionId("2"), OrderId("1"), LimitOrder(CurrencyUnit("BTC"), 5, Money(100, CurrencyUnit("EUR")), AccountId("3"))))
 

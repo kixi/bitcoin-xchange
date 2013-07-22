@@ -29,11 +29,11 @@ class AccountProjection extends Actor {
   }
 
   def when(e: MoneyDeposited) {
-    accounts(e.id) = e.balance(CurrencyUnit("EUR"))
+    accounts(e.id) = e.balance
   }
 
   def when(e: AccountOpened) {
-    accounts put (e.id, e.balance(CurrencyUnit("EUR")))
+    accounts put (e.id, e.balance)
   }
 
 

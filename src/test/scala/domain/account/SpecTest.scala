@@ -2,7 +2,6 @@ package domain.account
 
 import domain._
 import domain.CurrencyUnit
-import domain.Balances
 import domain.AccountId
 import domain.AccountOpened
 
@@ -31,7 +30,7 @@ class SpecTest {
 
 class SomeTest extends SpecTest {
   given {
-    AccountOpened(AccountId("1"), CurrencyUnit("EUR"), new Balances()) :: Nil
+    AccountOpened(AccountId("1"), CurrencyUnit("EUR"), new Money(0, CurrencyUnit("EUR"))) :: Nil
   }
 
   when {

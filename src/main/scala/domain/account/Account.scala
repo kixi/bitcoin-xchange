@@ -2,7 +2,6 @@ package domain.account
 
 import domain._
 import domain.UnhandledEventException
-import domain.Balances
 import domain.AccountId
 import domain.InsufficientFundsException
 import domain.Money
@@ -20,7 +19,7 @@ import cqrs.{AggregateFactory, AggregateRoot}
 
 class AccountFactory extends AggregateFactory[Account, AccountEvent] {
 
-  def create(id: AccountId, currency: CurrencyUnit) = applyEvent(AccountOpened(id, currency, new Balances()))
+  def create(id: AccountId, currency: CurrencyUnit) = applyEvent(AccountOpened(id, currency, new Money(0, currency)))
 
   override def applyEvent(e: AccountEvent) = {
     e match {
@@ -36,13 +35,14 @@ case class Account(
                     id: AccountId,
                     currency: CurrencyUnit,
                     requestedWithdrawals:Map[TransactionId, Money],
-                    balance: Balances) extends AggregateRoot[Account, AccountEvent] {
+                    balance: Money) extends AggregateRoot[Account, AccountEvent] {
 
 
   def markCommitted = copy(uncommittedEvents = Nil)
 
   def requestMoneyWithdrawal(withdrawalId: TransactionId, amount: Money): Account = {
     ensureSufficientFunds(amount)
+    ensureCurrenciesMatch(amount)
     applyEvent(MoneyWithdrawalRequested(id, withdrawalId, amount, balance - amount))
   }
 
@@ -54,14 +54,20 @@ case class Account(
   }
 
   def depositMoney(amount: Money): Account = {
+    ensureCurrenciesMatch(amount)
     applyEvent(MoneyDeposited(id, balance + amount))
   }
 
   def ensureSufficientFunds(amount: Money) {
-    if (balance(amount.currency) < amount)
-      throw new InsufficientFundsException("Not enough funds to place order. Current balance :"+balance(amount.currency)+". Amount requested:"+amount)
+    if (balance < amount)
+      throw new InsufficientFundsException("Not enough funds to place order. Current balance :"+ balance +". Amount requested:"+amount)
   }
 
+  def ensureCurrenciesMatch(amount: Money) {
+    if (currency != amount.currency) {
+      throw new InvalidCurrencyException("Currencies do not match ")
+    }
+  }
   def applyEvent(e: AccountEvent) = {
     e match {
       case event: AccountOpened => when(event)
