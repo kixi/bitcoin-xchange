@@ -1,6 +1,6 @@
 package console
 
-import akka.pattern.{ ask, pipe }
+import akka.pattern.{ask, pipe}
 import com.weiglewilczek.slf4s.Logger
 import akka.actor._
 import com.typesafe.config.ConfigFactory
@@ -15,6 +15,7 @@ import domain.AccountId
 import domain.OrderBookId
 import domain.PlaceOrder
 import domain.TransactionId
+import scala.concurrent.duration._
 
 /**
  * Created with IntelliJ IDEA.
@@ -33,7 +34,7 @@ object Console {
 
     val cons = System.console()
     while (true) {
-      Thread.sleep(300)
+      Thread.sleep(30)
 
       cons.printf("btcx $ ")
       val line = cons.readLine()
@@ -45,7 +46,7 @@ object Console {
             case _ => cons.printf("Invalid command: %s\n", command.head)
           }
         } catch {
-          case e:RuntimeException => e.printStackTrace()
+          case e: RuntimeException => e.printStackTrace()
         }
       }
     }
@@ -53,9 +54,9 @@ object Console {
 }
 
 case class ConsoleEnvironment(commandBus: ActorRef) {
-    val commandList = List(
+  val commandList = List(
     new DepositMoneyCmd(),
- //   new ListAccountsCmd(),
+    //   new ListAccountsCmd(),
     new OpenAccountCmd(),
     new CreateOrderBookCmd(),
     new PlaceOrderCmd(),
@@ -68,12 +69,34 @@ case class ConsoleEnvironment(commandBus: ActorRef) {
 
 object ConsoleEnvironment {
   def buildEnvironment = {
-    val system = ActorSystem("bitcoin-xchange",  ConfigFactory.load.getConfig("bitcoin-xchange-client"))
+    val system = ActorSystem("bitcoin-xchange", ConfigFactory.load.getConfig("bitcoin-xchange-client"))
     val remotePath =
       "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
-    val commandBus = system.actorFor(remotePath)
+    val commandBus = system.actorOf(Props(new LookupActor(remotePath)), "commandbus-client")
 
     ConsoleEnvironment(commandBus)
+  }
+}
+
+class LookupActor(path: String) extends Actor {
+
+  context.setReceiveTimeout(3.seconds)
+  sendIdentifyRequest()
+
+  def sendIdentifyRequest(): Unit =
+    context.actorSelection(path) ! Identify(path)
+
+  def receive = {
+    case ActorIdentity(`path`, Some(actor)) ⇒
+      context.setReceiveTimeout(Duration.Undefined)
+      context.become(active(actor))
+    case ActorIdentity(`path`, None) ⇒ println(s"Remote actor not availible: $path")
+    case ReceiveTimeout              ⇒ sendIdentifyRequest()
+    case _                           ⇒ println("Not ready yet")
+  }
+
+  def active(actor: ActorRef): Actor.Receive = {
+    case cmd => actor ! cmd
   }
 }
 
@@ -87,17 +110,15 @@ class OpenAccountCmd extends ConsoleCommand {
   override def cmdString = "openAccount"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-      env.commandBus ! (OpenAccount(AccountId(args(0)), CurrencyUnit(args(1))))
-   }
+    env.commandBus ! (OpenAccount(AccountId(args(0)), CurrencyUnit(args(1))))
+  }
 }
 
 class DepositMoneyCmd extends ConsoleCommand {
   override def cmdString = "deposit"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    for (i <- 0 to 10000)   {
-      env.commandBus ! (DepositMoney(AccountId(args(0)), Money(BigDecimal(args(1)), CurrencyUnit(args(2)))))
-    }
+    env.commandBus ! (DepositMoney(AccountId(args(0)), Money(BigDecimal(args(1)), CurrencyUnit(args(2)))))
   }
 }
 
@@ -113,9 +134,10 @@ class PlaceOrderCmd extends ConsoleCommand {
   override def cmdString = "placeOrder"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-      env.commandBus ! PlaceOrder(OrderBookId(args(0)), TransactionId(args(1)), LimitOrder(CurrencyUnit(args(2)), BigDecimal(args(3)), Money(BigDecimal(args(4)), CurrencyUnit(args(5))), AccountId(args(6))))
+    env.commandBus ! PlaceOrder(OrderBookId(args(0)), TransactionId(args(1)), LimitOrder(CurrencyUnit(args(2)), BigDecimal(args(3)), Money(BigDecimal(args(4)), CurrencyUnit(args(5))), AccountId(args(6))))
   }
 }
+
 /*
 class ListAccountsCmd extends ConsoleCommand {
   override def cmdString = "listAccounts"
