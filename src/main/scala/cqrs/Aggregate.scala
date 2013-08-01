@@ -14,10 +14,11 @@ trait EventSourced[ES <: EventSourced[ES, E], E] {
 
 
 trait AggregateRoot[AR <: AggregateRoot[AR, E], E] extends EventSourced[AR, E] {
-  def uncommittedEvents : List[E]
+  def uncommittedEventsReverse : List[E]
   def version : Int
 
   def markCommitted: AR
+  def uncommittedEvents = uncommittedEventsReverse.reverse
 }
 
 trait AggregateFactory[AR <: AggregateRoot[AR, E], E] extends EventSourced[AR, E] {

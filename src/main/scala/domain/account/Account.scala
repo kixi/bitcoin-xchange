@@ -30,7 +30,7 @@ class AccountFactory extends AggregateFactory[Account, AccountEvent] {
 }
 
 case class Account(
-                    uncommittedEvents:List[AccountEvent],
+                    uncommittedEventsReverse:List[AccountEvent],
                     version: Int,
                     id: AccountId,
                     currency: CurrencyUnit,
@@ -38,7 +38,7 @@ case class Account(
                     balance: Money) extends AggregateRoot[Account, AccountEvent] {
 
 
-  def markCommitted = copy(uncommittedEvents = Nil)
+  def markCommitted = copy(uncommittedEventsReverse = Nil)
 
   def requestMoneyWithdrawal(withdrawalId: TransactionId, amount: Money): Account = {
     ensureSufficientFunds(amount)
@@ -79,19 +79,19 @@ case class Account(
   }
 
   def when(e: AccountOpened): Account = {
-    Account(e :: uncommittedEvents,0, e.id, e.currency, Map.empty[TransactionId, Money], e.balance)
+    Account(e :: uncommittedEventsReverse,0, e.id, e.currency, Map.empty[TransactionId, Money], e.balance)
   }
 
   def when(e: MoneyDeposited): Account =  {
-    copy(uncommittedEvents = e :: uncommittedEvents, balance = e.balance)
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse, balance = e.balance)
   }
 
   def when(e: MoneyWithdrawalRequested): Account =  {
-    copy(uncommittedEvents = e :: uncommittedEvents, requestedWithdrawals=requestedWithdrawals + (e.transactionId -> e.amount), balance = e.balance)
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse, requestedWithdrawals=requestedWithdrawals + (e.transactionId -> e.amount), balance = e.balance)
   }
 
   def when(e: MoneyWithdrawalConfirmed): Account =  {
-    copy(uncommittedEvents = e :: uncommittedEvents, requestedWithdrawals=requestedWithdrawals - (e.transactionId))
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse, requestedWithdrawals=requestedWithdrawals - (e.transactionId))
   }
 
 }

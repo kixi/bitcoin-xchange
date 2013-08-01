@@ -1,6 +1,8 @@
 package cqrs
 
 import domain.{Event, AggregateNotFoundException, Identity}
+import com.weiglewilczek.slf4s.Logger
+import commons.StopWatch
 
 /**
  * Created with IntelliJ IDEA.
@@ -13,6 +15,7 @@ trait ApplicationService[AR <: AggregateRoot[AR, E], ARID <: Identity, ARF<: Agg
   def eventStore:EventStore
   def factory: ARF
 
+  val logger = Logger("ApplicationService")
   def read(id: ARID):Option[AR] = {
     val eventStreamId = id.id
     val eventStream = eventStore.loadEventStream(eventStreamId)
@@ -24,6 +27,7 @@ trait ApplicationService[AR <: AggregateRoot[AR, E], ARID <: Identity, ARF<: Agg
   }
 
   def update(id: ARID, f : AR => AR) {
+    val watch = new StopWatch
     read(id) match {
       case None => throw new AggregateNotFoundException("aggregate with id " + id + " not found")
       case Some(aggregate) => {
@@ -31,9 +35,11 @@ trait ApplicationService[AR <: AggregateRoot[AR, E], ARID <: Identity, ARF<: Agg
         eventStore.appendEventsToStream(id.id, aggregate.version, newAggregate.uncommittedEvents.asInstanceOf[List[Event]])
       }
     }
+    logger.debug("update in " + watch.stop)
   }
 
   def insert(id: ARID, f : Unit => AR) {
+    val watch = new StopWatch
     read(id) match {
       case None => {
         val aggregate = f()
@@ -41,6 +47,7 @@ trait ApplicationService[AR <: AggregateRoot[AR, E], ARID <: Identity, ARF<: Agg
       }
       case Some(aggregate) => throw new RuntimeException("account with this id already exists" + id)
     }
+    logger.debug("insert in " + watch.stop)
   }
 
 }

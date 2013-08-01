@@ -11,13 +11,21 @@ import akka.actor.{Actor, ActorRef}
  * To change this template use File | Settings | File Templates.
  */
 
-case class SubscribeMsg(subscriber: ActorRef)
+case class SubscribeMsg(subscriber: ActorRef, filter: Any => Boolean)
 
 class SynchronousEventHandler extends Actor {
-   var eventSubscribers : List[ActorRef] = Nil
+  var eventSubscribers : List[ActorRef] = Nil
+  var filters : Map[ActorRef, Any=>Boolean] = Map.empty[ActorRef, Any => Boolean]
 
    def receive = {
-    case m:SubscribeMsg => eventSubscribers = m.subscriber :: eventSubscribers
-    case e => eventSubscribers.foreach(_ ! e)
+    case m:SubscribeMsg => {
+      eventSubscribers = m.subscriber :: eventSubscribers
+      filters += (m.subscriber -> m.filter)
+    }
+    case e =>
+      for {
+        sub <- eventSubscribers
+        filter <- filters.get(sub) if (filter(e))
+       } sub ! e
   }
 }

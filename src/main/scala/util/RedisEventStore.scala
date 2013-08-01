@@ -1,6 +1,16 @@
 package util
+ /*
+import akka.actor.{Actor, Props, ActorRef, ActorSystem}
+import cqrs.{EventStream, EventStore}
+import scala.concurrent.duration._
+import scala.concurrent.Await
+import domain.Event
+import akka.util.Timeout
+import java.io.{ByteArrayOutputStream, ObjectOutputStream}
+import com.typesafe.config.ConfigException.Parse
+import com.redis.RedisClientPool
 
-
+  */
 /**
  * Created with IntelliJ IDEA.
  * User: guenter
@@ -8,10 +18,10 @@ package util
  * Time: 14:09
  * To change this template use File | Settings | File Templates.
  */
-/*
+ /*
 class RedisEventStore(as: ActorSystem, val eventHandler: ActorRef) extends EventStore {
 
-  lazy val logger = as.actorOf(Props(new EventStoreActor(eventHandler)).withDispatcher("my-pinned-dispatcher"))
+  lazy val logger = as.actorOf(Props(new InMemoryEventStoreActore(eventHandler)).withDispatcher("my-pinned-dispatcher"))
   implicit val timeout = Timeout(20 seconds)
 
   def loadEventStream(id: String): EventStream = {
@@ -31,13 +41,13 @@ class Logger(clients: RedisClientPool) extends Actor {
 
   def receive = {
     case AppendEventsToStream(id, version, events) =>
-      new ObjectOutputStream(new ByteArrayOutputStream(bytes)).
+  //    new ObjectOutputStream(new ByteArrayOutputStream(bytes)).
       clients.withClient {client =>
-        client.lpush(id, events.)
+        client.lpush(id, events)
       }
 
     case LoadEventStream(streamId) =>
-      import Parse.Implicits.parseByteArray
+
       val entries =
         clients.withClient {client =>
           client.lrange[Event](streamId, 0, -1)
@@ -45,5 +55,4 @@ class Logger(clients: RedisClientPool) extends Actor {
       val ren = entries.map(_.map(e => e.get)).getOrElse(List.empty[Event]).reverse
       sender ! ren
   }
-}
-*/
+}                                                                                                     */

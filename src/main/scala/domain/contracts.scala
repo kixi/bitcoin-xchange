@@ -1,5 +1,7 @@
 package domain
 
+import java.util.UUID
+
 /**
  * Created with IntelliJ IDEA.
  * User: guenter
@@ -13,11 +15,9 @@ trait Identity {
 
 case class OrderBookId(id: String) extends Identity
 
-case class AccountId(id: String) extends Identity
+case class AccountId(id: String = UUID.randomUUID().toString) extends Identity
 
-case class TransactionId(id: String) extends Identity
+case class TransactionId(id: String = UUID.randomUUID().toString) extends Identity
 
-case class OrderId(id: String) extends Identity
-object OrderId {
-  def create = OrderId("1")
-}
+case class OrderId(id: String = UUID.randomUUID().toString) extends Identity
+

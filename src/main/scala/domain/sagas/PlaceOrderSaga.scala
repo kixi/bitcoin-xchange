@@ -25,6 +25,7 @@ import domain.OrderPlacementConfirmed
  */
 sealed trait State
 case object Start extends State
+case object End extends State
 case object WaitingForAccountApproval extends State
 case object WaitingForOrderBookApproval extends State
 case object WaitingForAccountConfirmation extends State
@@ -39,7 +40,7 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
 
   when(Start) {
     case Event(e : OrderPlaced, Uninitialized) => {
-     goto (WaitingForAccountApproval) using SagaData(e.id, e.order, e.order.account, e.transactionId)
+     goto (WaitingForAccountApproval) using SagaData(e.id, e.order, if (e.order.buy) e.order.moneyAccount else e.order.productAccount, e.transactionId)
     }
   }
 
@@ -60,20 +61,20 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
 
   when(WaitingForOrderBookConfirmation) {
     case Event( e : OrderPlacementConfirmed, x: SagaData) =>
-      goto (WaitingForAccountApproval)
+      stop()
   }
 
   onTransition {
     case Start -> WaitingForAccountApproval =>
       nextStateData match {
         case SagaData(orderBookId, order, accountId, transactionId) =>
-          commandReceiver !  RequestMoneyWithdrawal(accountId, transactionId, order.amount )
+           commandReceiver !  RequestMoneyWithdrawal(accountId, transactionId, if (order.buy) order.amount else Money(order.quantity, order.product))
         case _ =>
      }
     case WaitingForAccountApproval -> WaitingForOrderBookApproval =>
       stateData match {
         case SagaData(orderBookId, order, accountId, transactionId) =>
-          commandReceiver ! PrepareOrderPlacement(orderBookId, transactionId, OrderId("1"), order )
+          commandReceiver ! PrepareOrderPlacement(orderBookId, transactionId, order.id, order )
         case _ =>
       }
     case WaitingForOrderBookApproval -> WaitingForAccountConfirmation =>
@@ -82,14 +83,21 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
           commandReceiver ! ConfirmMoneyWithdrawal(accountId, transactionId)
         case _ =>
       }
-    case WaitingForAccountConfirmation -> WaitingForOrderBookConfirmation => {
-      stop(Normal)
+    case WaitingForAccountConfirmation -> WaitingForOrderBookConfirmation =>
+      stateData match {
+        case SagaData(orderBookId, order, accountId, transactionId) =>
+          commandReceiver ! ConfirmOrderPlacement(orderBookId, transactionId, order.id, order)
+        case _ =>
+    }
+    case WaitingForOrderBookConfirmation -> End => {
+        stop()
+
     }
 
    }
 }
 
-class SagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLogging {
+class PlaceOrderSagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLogging {
   var sagas = Map.empty[TransactionId, ActorRef]
 
   def receive = {
@@ -99,8 +107,7 @@ class SagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLoggin
     case e : OrderPlacementPrepared => forward(e.transactionId, e)
     case e : MoneyWithdrawalConfirmed  => forward(e.transactionId, e)
     case e : OrderPlacementConfirmed  => {
-      val Some(saga) = sagas.get(e.transactionId)
-      saga forward e
+      for(saga <- sagas.get(e.transactionId)) saga forward e
       sagas = sagas - e.transactionId
     }
     case _ =>
@@ -109,8 +116,7 @@ class SagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLoggin
     log.debug("Event received " + e)
     if (!sagas.contains(transactionId))
       sagas = sagas + (transactionId -> context.system.actorOf(Props(new PlaceOrderSaga(commandDispatcher))))
-    val Some(saga) = sagas.get(transactionId)
-    saga forward e
+    for(saga <- sagas.get(transactionId)) saga forward e
   }
 
 }

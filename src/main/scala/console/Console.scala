@@ -4,18 +4,23 @@ import akka.pattern.{ask, pipe}
 import com.weiglewilczek.slf4s.Logger
 import akka.actor._
 import com.typesafe.config.ConfigFactory
+import domain._
+import scala.Some
+import scala.concurrent.duration._
+import org.joda.time.DateTime
 import domain.CreateOrderBook
 import domain.Money
+import akka.actor.ActorIdentity
 import domain.OpenAccount
 import scala.Some
 import domain.DepositMoney
+import akka.actor.Identify
 import domain.CurrencyUnit
 import domain.LimitOrder
 import domain.AccountId
 import domain.OrderBookId
 import domain.PlaceOrder
 import domain.TransactionId
-import scala.concurrent.duration._
 
 /**
  * Created with IntelliJ IDEA.
@@ -33,6 +38,19 @@ object Console {
     val env = ConsoleEnvironment.buildEnvironment
 
     val cons = System.console()
+
+    Thread.sleep(5000)
+
+    for(cmd <- env.commands.get("createOrderBook")) cmd.execute(env, "BTCEUR EUR".split(" "))
+    for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-EUR EUR".split(" "))
+    for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-BTC BTC".split(" "))
+    for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "2-EUR EUR".split(" "))
+    for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "2-BTC BTC".split(" "))
+    for(cmd <- env.commands.get("deposit")) cmd.execute(env, "1-EUR 10000 EUR".split(" "))
+    for(cmd <- env.commands.get("deposit")) cmd.execute(env, "1-BTC 50 BTC".split(" "))
+    for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-EUR 8000 EUR".split(" "))
+    for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-BTC 100 BTC".split(" "))
+
     while (true) {
       Thread.sleep(30)
 
@@ -59,7 +77,8 @@ case class ConsoleEnvironment(commandBus: ActorRef) {
     //   new ListAccountsCmd(),
     new OpenAccountCmd(),
     new CreateOrderBookCmd(),
-    new PlaceOrderCmd(),
+    new BuyCmd(),
+    new SellCmd(),
     new ExitCmd())
   val commands: Map[String, ConsoleCommand] = {
     for (cmd <- commandList)
@@ -91,8 +110,8 @@ class LookupActor(path: String) extends Actor {
       context.setReceiveTimeout(Duration.Undefined)
       context.become(active(actor))
     case ActorIdentity(`path`, None) ⇒ println(s"Remote actor not availible: $path")
-    case ReceiveTimeout              ⇒ sendIdentifyRequest()
-    case _                           ⇒ println("Not ready yet")
+    case ReceiveTimeout ⇒ sendIdentifyRequest()
+    case _ ⇒ println("Not ready yet")
   }
 
   def active(actor: ActorRef): Actor.Receive = {
@@ -126,18 +145,43 @@ class CreateOrderBookCmd extends ConsoleCommand {
   override def cmdString = "createOrderBook"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.commandBus ! CreateOrderBook(OrderBookId(args(0)))
+    env.commandBus ! CreateOrderBook(OrderBookId(args(0)), CurrencyUnit(args(1)))
   }
 }
 
-class PlaceOrderCmd extends ConsoleCommand {
-  override def cmdString = "placeOrder"
+class BuyCmd extends ConsoleCommand {
+  override def cmdString = "buy"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.commandBus ! PlaceOrder(OrderBookId(args(0)), TransactionId(args(1)), LimitOrder(CurrencyUnit(args(2)), BigDecimal(args(3)), Money(BigDecimal(args(4)), CurrencyUnit(args(5))), AccountId(args(6))))
+    env.commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(),
+      LimitOrder(OrderId(),
+        new DateTime(),
+        CurrencyUnit("BTC"),
+        BigDecimal(args(0)),
+        Money(BigDecimal(args(1)), CurrencyUnit(args(2))),
+        Buy,
+        AccountId(args(3)+"-EUR"),
+        AccountId(args(3)+"-BTC")))
+
   }
 }
 
+class SellCmd extends ConsoleCommand {
+  override def cmdString = "sell"
+
+  override def execute(env: ConsoleEnvironment, args: Array[String]) {
+    env.commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(),
+      LimitOrder(OrderId(),
+        new DateTime(),
+        CurrencyUnit("BTC"),
+        BigDecimal(args(0)),
+        Money(BigDecimal(args(1)), CurrencyUnit(args(2))),
+        Sell,
+        AccountId(args(3)+"-EUR"),
+        AccountId(args(3)+"-BTC")))
+
+  }
+}
 /*
 class ListAccountsCmd extends ConsoleCommand {
   override def cmdString = "listAccounts"
@@ -155,7 +199,6 @@ class ExitCmd extends ConsoleCommand {
   override def cmdString = "exit"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    ActorSystem("Bitcoin-XChange").shutdown()
     System.exit(0)
   }
 }

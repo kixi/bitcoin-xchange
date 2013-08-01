@@ -10,3 +10,14 @@ libraryDependencies ++= Dependencies.xchangeService
 
 scalacOptions ++= Seq("-language:postfixOps","-deprecation","-feature")
 
+javaOptions in run += "-javaagent:C:/program_dev/typesafe-console-developer-1.2.0/lib/weaver/aspectjweaver.jar"
+
+javaOptions in run += "-Dorg.aspectj.tracing.factory=default"
+
+javaOptions in run += "-Djava.library.path=../lib/sigar"
+
+net.virtualvoid.sbt.graph.Plugin.graphSettings
+
+atmosSettings
+
+traceAkka("2.2.0")

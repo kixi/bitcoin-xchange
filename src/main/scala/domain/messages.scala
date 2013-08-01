@@ -25,8 +25,8 @@ trait AccountEvent extends Event {
   def id: AccountId
 }
 
-case class CreateOrderBook(id: OrderBookId) extends OrderBookCommand
-case class OrderBookCreated(id: OrderBookId) extends OrderBookEvent
+case class CreateOrderBook(id: OrderBookId, currency: CurrencyUnit) extends OrderBookCommand
+case class OrderBookCreated(id: OrderBookId, currency: CurrencyUnit) extends OrderBookEvent
 
 case class PlaceOrder(id: OrderBookId, transactionId: TransactionId, order: LimitOrder) extends OrderBookCommand
 case class OrderPlaced(id: OrderBookId, transactionId: TransactionId, order: LimitOrder) extends OrderBookEvent
@@ -49,3 +49,12 @@ case class MoneyWithdrawalRequested(id: AccountId, transactionId: TransactionId,
 case class ConfirmMoneyWithdrawal(id: AccountId, transactionId: TransactionId) extends AccountCommand
 case class MoneyWithdrawalConfirmed(id: AccountId, transactionId: TransactionId) extends AccountEvent
 
+case class OrderQueued(id: OrderBookId, order: Order) extends OrderBookEvent
+
+case class OrderAdjusted(id: OrderBookId, order: Order) extends OrderBookEvent
+
+case class OrdersExecuted(id: OrderBookId, buy: Order, sell: Order, price: Money) extends OrderBookEvent
+
+case class PricesChanged(id: OrderBookId, bidPrice: BigDecimal, askPrice: BigDecimal) extends OrderBookEvent
+
+case class OrderExpired(id: OrderBookId, order: Order) extends OrderBookEvent

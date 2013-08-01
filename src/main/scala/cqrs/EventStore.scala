@@ -14,5 +14,5 @@ trait EventStore {
   def appendEventsToStream(id: String, version: Int, events: List[Event])
 }
 
-case class EventStream(val events: List[Event], val streamVersion: Int)
+case class EventStream(events: List[Event], streamVersion: Int, boomerang: Any)
 
