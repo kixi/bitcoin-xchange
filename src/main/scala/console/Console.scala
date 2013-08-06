@@ -42,7 +42,7 @@ object Console {
     Thread.sleep(5000)
 
     for(cmd <- env.commands.get("createOrderBook")) cmd.execute(env, "BTCEUR EUR".split(" "))
-    for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-EUR EUR".split(" "))
+ /*   for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-EUR EUR".split(" "))
     for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-BTC BTC".split(" "))
     for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "2-EUR EUR".split(" "))
     for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "2-BTC BTC".split(" "))
@@ -50,7 +50,7 @@ object Console {
     for(cmd <- env.commands.get("deposit")) cmd.execute(env, "1-BTC 50 BTC".split(" "))
     for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-EUR 8000 EUR".split(" "))
     for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-BTC 100 BTC".split(" "))
-
+ */
     while (true) {
       Thread.sleep(30)
 
