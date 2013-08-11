@@ -1,23 +1,46 @@
+/*
+ * Copyright (c) 2013, Günter Kickinger.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * All advertising materials mentioning features or use of this software must
+ * display the following acknowledgement: “This product includes software developed
+ * by Günter Kickinger and his contributors.”
+ * Neither the name of Günter Kickinger nor the names of its contributors may be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS”
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package service
 
 import com.weiglewilczek.slf4s.Logger
 import akka.actor.{Props, ActorSystem}
-import util._
-import domain.orderbook.OrderBookAppService
+import eventstore._
 import domain.CommandBus
-import projections.{LoggingProjection, AccountProjection}
+import projections.{OrderCounterProjection, LoggingProjection, AccountProjection}
 import domain.sagas.{ProcessPaymentsSagaRouter, PlaceOrderSagaRouter}
 import com.typesafe.config.ConfigFactory
-import util.SubscribeMsg
-import domain.account.AccountProcessor
-
-/**
- * Created with IntelliJ IDEA.
- * User: guenter
- * Date: 20.07.13
- * Time: 10:12
- * To change this template use File | Settings | File Templates.
- */
+import eventstore.SubscribeMsg
+import domain.account.{AccountService, AccountProcessor}
+import domain.orderbook.{OrderBookService, OrderBookProcessor}
+import cqrs.{Identity, Event}
 
 object Service {
   val log = Logger("Console")
@@ -37,19 +60,19 @@ object Service {
 object ServiceEnvironment {
   val system = ActorSystem("bitcoin-xchange",  ConfigFactory.load.getConfig("bitcoin-xchange"))
   val handler = system.actorOf(Props(new SynchronousEventHandler()), "event-handler")
-  val eventStore = new InMemoryEventStore(system, handler)
-  val eventStoreActor =  system.actorOf(Props(classOf[FileEventStoreActor], handler).withDispatcher("my-pinned-dispatcher"), "event-store")
-//  val accountService = system.actorOf(Props(new AccountAppService(eventStore)), "account-service" )
-  val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
-  val orderBookService = system.actorOf(Props(new OrderBookAppService(eventStore)), "orderbook-service" )
-  val commandBus = system.actorOf(Props(new CommandBus(eventStoreActor, accountProcessor, orderBookService)), "command-bus")
+  val eventStoreActor =  system.actorOf(Props(classOf[EventStoreActor[Event[Identity]]], handler, new InMemoryEventStore[Event[Identity]]), "event-store")
+ // val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
+  val accountProcessor = system.actorOf(Props(new AccountService(handler)), "account-processor" )
+  val orderBookProcessor = system.actorOf(OrderBookService.props(eventStoreActor, handler),  "orderbook-processor" )
+  val commandBus = system.actorOf(Props(new CommandBus(eventStoreActor, accountProcessor, orderBookProcessor)), "command-bus")
   val accountView = system.actorOf(Props(new AccountProjection()), "account-projection")
+  val counter = system.actorOf(Props(new OrderCounterProjection()), "order-counter-projection")
 
 
-  def buildEnvironment = {
-
-    handler ! SubscribeMsg(accountView, (x) => true)
-    handler ! SubscribeMsg(system.actorOf(Props(new LoggingProjection()), "logging-projection"), (x) => true)
+  def buildEnvironment {
+ //   handler ! SubscribeMsg(accountView, (x) => true)
+ //   handler ! SubscribeMsg(system.actorOf(Props(new LoggingProjection()), "logging-projection"), (x) => true)
+    handler ! SubscribeMsg(counter, (x) => true)
     handler ! SubscribeMsg(system.actorOf(Props(new PlaceOrderSagaRouter(commandBus)), "place-order-saga-router"), (x) => true)
     handler ! SubscribeMsg(system.actorOf(Props(new ProcessPaymentsSagaRouter(commandBus)), "process-payments-saga-router"), (x) => true)
   }

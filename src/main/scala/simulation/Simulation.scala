@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2013, Günter Kickinger.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * All advertising materials mentioning features or use of this software must
+ * display the following acknowledgement: “This product includes software developed
+ * by Günter Kickinger and his contributors.”
+ * Neither the name of Günter Kickinger nor the names of its contributors may be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS”
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package simulation
 
 import akka.pattern.{ask, pipe}
@@ -21,7 +51,8 @@ import domain.AccountId
 import domain.OrderBookId
 import domain.PlaceOrder
 import domain.TransactionId
-import util.SubscribeMsg
+import eventstore.SubscribeMsg
+import service.ServiceEnvironment
 
 /**
  * Created with IntelliJ IDEA.
@@ -31,21 +62,29 @@ import util.SubscribeMsg
  * To change this template use File | Settings | File Templates.
  */
 object Simulator {
-  val log = Logger("Simujlator")
+  val log = Logger("Simulator")
 
   def main(args: Array[String]) {
     log.info("Starting bitcoin-exchange simulator cliewnt ...")
+    ServiceEnvironment.buildEnvironment
+    log.info("Starting bitcoin-exchange up and running")
+
+    Thread.sleep(5000)
+
 
     val env = SimulationEnvironment.buildEnvironment
 
     val cons = System.console()
 
-    Thread.sleep(5000)
+    Thread.sleep(500)
 
     for (user <- env.users) {
       user ! StartSimulation
     }
+
     System.in.read
+
+    ServiceEnvironment.system.shutdown()
   }
 
 }
@@ -57,6 +96,8 @@ object SimulationEnvironment {
     val system = ActorSystem("bitcoin-xchange", ConfigFactory.load.getConfig("bitcoin-xchange-client"))
     val remotePathCommandBus = "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
     val remotePathEventHandler = "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/event-handler"
+//    val commandBus = ServiceEnvironment.commandBus
+//    val eventHandler = ServiceEnvironment.handler
     val commandBus = system.actorOf(Props(new LookupActor(remotePathCommandBus)), "commandbus-client")
     val eventHandler = system.actorOf(Props(new LookupActor(remotePathEventHandler)), "event-handler-client")
 
@@ -69,15 +110,15 @@ object SimulationEnvironment {
       val user = system.actorOf(Props(new User(commandBus, userId)),"sim-user-"+userId)
       val accBtcId = AccountId(userId+"-BTC")
       val accEurId = AccountId(userId+"-EUR")
-      /*
-       eventHandler ! SubscribeMsg(user, (x) =>  x match {
-        case AccountOpened(accountId, _, _) if (accountId == accBtcId ) => true
-        case AccountOpened(accountId, _, _) if (accountId == accEurId) => true
-        case MoneyDeposited(accountId, _) if (accountId == accBtcId ) => true
-        case MoneyDeposited(accountId, _) if (accountId == accEurId) => true
+
+      eventHandler ! SubscribeMsg(user, (x) =>  x match {
+        case AccountOpened(accountId, _, _, _) if (accountId == accBtcId ) => true
+        case AccountOpened(accountId, _, _, _) if (accountId == accEurId) => true
+        case MoneyDeposited(accountId, _, _, _) if (accountId == accBtcId ) => true
+        case MoneyDeposited(accountId, _, _, _) if (accountId == accEurId) => true
 
         case _ => false
-      } )    */
+      } )
       user
     }
 

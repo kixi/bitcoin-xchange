@@ -28,41 +28,56 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package domain.sagas
+package eventstore
 
-import akka.actor._
+import org.scalatest.FunSuite
 import domain._
-import akka.actor.FSM.Normal
-import domain.RequestMoneyWithdrawal
-import domain.OrderPlaced
-import domain.LimitOrder
+import com.weiglewilczek.slf4s.Logger
+import java.io._
+import domain.CurrencyUnit
 import domain.AccountId
-import domain.PrepareOrderPlacement
-import domain.OrderPlacementPrepared
-import domain.ConfirmMoneyWithdrawal
-import domain.OrderBookId
-import domain.MoneyWithdrawalConfirmed
-import domain.MoneyWithdrawalRequested
-import domain.TransactionId
-import domain.OrderPlacementConfirmed
+import domain.Money
+import domain.AccountOpened
+import cqrs.{Event, Identity}
+/*
+class EventStoreTest extends FunSuite {
+  test("add one event and receive same event to file event store") {
+    val store = new FileEventStore[Event[Identity]]("/data/")
 
-/**
- * Created with IntelliJ IDEA.
- * User: guenter
- * Date: 03.07.13
- * Time: 06:41
- * To change this template use File | Settings | File Templates.
- */
+    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
 
-class ProcessPaymentsSagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLogging {
+    store.appendEventsToStream("TEST-1", 0, events)
 
-  def receive = {
+    val stored = store.loadEventStream("TEST-1")
 
-    case e : OrdersExecuted => {
-      commandDispatcher ! DepositMoney(e.buy.productAccount, Money(e.buy.quantity, e.buy.product))
-      commandDispatcher ! DepositMoney(e.sell.moneyAccount, e.price * e.sell.quantity)
-    }
-    case _ =>
+    assert(events === stored)
+  }
+
+  test("add two events of same type and receive same events to file event store") {
+    val store = new FileEventStore("/data/")
+
+    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: AccountOpened(AccountId("2"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
+
+    store.appendEventsToStream("TEST-2", 0, events)
+
+    val stored = store.loadEventStream("TEST-2")
+
+    assert(events === stored)
+  }
+
+  test("add two events of different type and receive same events to file event store") {
+    val store = new FileEventStore("/data/")
+
+    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) ::
+      MoneyDeposited(AccountId("1"), Money(100, CurrencyUnit("EUR")), new Money(100, CurrencyUnit("EUR"))) :: Nil
+
+    store.appendEventsToStream("TEST-3", 0, events)
+
+    val stored = store.loadEventStream("TEST-3")
+
+    assert(events === stored)
   }
 
 }
+
+     */

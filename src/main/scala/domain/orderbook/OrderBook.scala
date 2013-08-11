@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2013, Günter Kickinger.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * All advertising materials mentioning features or use of this software must
+ * display the following acknowledgement: “This product includes software developed
+ * by Günter Kickinger and his contributors.”
+ * Neither the name of Günter Kickinger nor the names of its contributors may be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS”
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package domain.orderbook
 
 import domain._
@@ -6,15 +36,8 @@ import domain.UnhandledEventException
 import domain.OrderBookCreated
 import domain.OrderBookId
 
-/**
- * Created with IntelliJ IDEA.
- * User: guenter
- * Date: 19.06.13
- * Time: 22:24
- * To change this template use File | Settings | File Templates.
- */
 
-class OrderBookFactory extends AggregateFactory[OrderBook, OrderBookEvent] {
+class OrderBookFactory extends AggregateFactory[OrderBook, OrderBookEvent, OrderBookId] {
 
   def create(id: OrderBookId, currency: CurrencyUnit) = applyEvent(OrderBookCreated(id, currency))
 
@@ -31,17 +54,21 @@ class OrderBookFactory extends AggregateFactory[OrderBook, OrderBookEvent] {
 
 
 case class OrderBook(
-                      uncommittedEventsReverse: List[OrderBookEvent],
-                      version: Int,
+                      uncommittedEventsReverse: List[OrderBookEvent] = Nil,
+                      version: Int = 0,
                       id: OrderBookId,
-                      preparedOrders : Map[OrderId, LimitOrder],
-                      buyOrders: List[Order],
-                      sellOrders: List[Order],
+                      preparedOrders : Map[OrderId, LimitOrder] = Map.empty[OrderId, LimitOrder],
+                      buyOrders: List[Order] = Nil,
+                      sellOrders: List[Order] = Nil,
                       currency: CurrencyUnit,
                       referencePrice: Money,
                       currentBid: Money,
                       currentAsk: Money)
-  extends AggregateRoot[OrderBook, OrderBookEvent] {
+  extends AggregateRoot[OrderBook, OrderBookEvent, OrderBookId] {
+
+  def loadedVersion(version: Int) = {
+    copy(version = version)
+  }
 
   def placeOrder(transactionId: TransactionId, order: LimitOrder): OrderBook = {
     applyEvent(new OrderPlaced(id, transactionId, order))

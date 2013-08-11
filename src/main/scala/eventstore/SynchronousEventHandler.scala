@@ -28,41 +28,30 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package domain.sagas
+package eventstore
 
-import akka.actor._
-import domain._
-import akka.actor.FSM.Normal
-import domain.RequestMoneyWithdrawal
-import domain.OrderPlaced
-import domain.LimitOrder
-import domain.AccountId
-import domain.PrepareOrderPlacement
-import domain.OrderPlacementPrepared
-import domain.ConfirmMoneyWithdrawal
-import domain.OrderBookId
-import domain.MoneyWithdrawalConfirmed
-import domain.MoneyWithdrawalRequested
-import domain.TransactionId
-import domain.OrderPlacementConfirmed
 
-/**
- * Created with IntelliJ IDEA.
- * User: guenter
- * Date: 03.07.13
- * Time: 06:41
- * To change this template use File | Settings | File Templates.
- */
+import akka.actor.{ActorLogging, Actor, ActorRef}
 
-class ProcessPaymentsSagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLogging {
 
-  def receive = {
+case class SubscribeMsg(subscriber: ActorRef, filter: Any => Boolean)
 
-    case e : OrdersExecuted => {
-      commandDispatcher ! DepositMoney(e.buy.productAccount, Money(e.buy.quantity, e.buy.product))
-      commandDispatcher ! DepositMoney(e.sell.moneyAccount, e.price * e.sell.quantity)
+class SynchronousEventHandler extends Actor with ActorLogging {
+  var eventSubscribers : List[ActorRef] = Nil
+  var filters : Map[ActorRef, Any=>Boolean] = Map.empty[ActorRef, Any => Boolean]
+
+   def receive = {
+    case m:SubscribeMsg => {
+      eventSubscribers = m.subscriber :: eventSubscribers
+      filters += (m.subscriber -> m.filter)
     }
-    case _ =>
+    case e =>
+      for {
+        sub <- eventSubscribers
+        filter <- filters.get(sub) if (filter(e))
+       } {
+    //    log.debug("Notifying actor: " + sub + " - Message "+e)
+        sub ! e
+      }
   }
-
 }

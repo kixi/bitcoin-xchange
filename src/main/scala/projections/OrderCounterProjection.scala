@@ -28,41 +28,59 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package domain.sagas
+package projections
 
-import akka.actor._
+import akka.actor.Actor
 import domain._
-import akka.actor.FSM.Normal
-import domain.RequestMoneyWithdrawal
-import domain.OrderPlaced
-import domain.LimitOrder
-import domain.AccountId
-import domain.PrepareOrderPlacement
-import domain.OrderPlacementPrepared
-import domain.ConfirmMoneyWithdrawal
-import domain.OrderBookId
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.DateTime
 import domain.MoneyWithdrawalConfirmed
-import domain.MoneyWithdrawalRequested
-import domain.TransactionId
-import domain.OrderPlacementConfirmed
+import domain.OrderQueued
+import domain.OrdersExecuted
+import domain.MoneyDeposited
 
 /**
  * Created with IntelliJ IDEA.
- * User: guenter
- * Date: 03.07.13
- * Time: 06:41
+ * User: WZBKKG
+ * Date: 08.08.13
+ * Time: 13:36
  * To change this template use File | Settings | File Templates.
  */
+class OrderCounterProjection extends Actor {
+  var ordersQueued = 0
+  var ordersExecuted = 0
+  var deposits = 0
+  var withdrawals = 0
+  var placements = 0
 
-class ProcessPaymentsSagaRouter(val commandDispatcher: ActorRef) extends Actor with ActorLogging {
+  var total = 0
 
-  def receive = {
+  val displayAfter = 10000
 
-    case e : OrdersExecuted => {
-      commandDispatcher ! DepositMoney(e.buy.productAccount, Money(e.buy.quantity, e.buy.product))
-      commandDispatcher ! DepositMoney(e.sell.moneyAccount, e.price * e.sell.quantity)
-    }
+  val fmt = DateTimeFormat.forPattern("HH:mm:ss:SSSS")
+
+  def receive : Actor.Receive = {
+    case _ : OrderQueued =>
+      log
+      ordersQueued += 1
+    case _ : OrdersExecuted =>
+      log
+      ordersExecuted += 1
+    case _ : MoneyDeposited =>
+      log
+      deposits += 1
+    case _ : MoneyWithdrawalConfirmed =>
+      log
+      withdrawals += 1
+    case _ : OrderPlaced =>
+      log
+      placements += 1
     case _ =>
   }
 
+  def log {
+    total += 1
+    if (total % displayAfter == 0)
+      System.out.println(fmt.print(new DateTime()) +" queued="+ordersQueued+", executed="+ordersExecuted + ", deposits="+deposits+", withdrawals="+withdrawals+", placements="+placements)
+  }
 }
