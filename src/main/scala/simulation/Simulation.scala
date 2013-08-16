@@ -61,16 +61,16 @@ import eventstore.SubscribeMsg
 object Simulator {
 
   def main(args: Array[String]) {
-     ServiceEnvironment.buildEnvironment
+    ServiceEnvironment.buildEnvironment
 
-    Thread.sleep(500)
+    Thread.sleep(100)
 
 
     val env = SimulationEnvironment.buildEnvironment
 
     val cons = System.console()
 
-    Thread.sleep(500)
+    Thread.sleep(100)
 
     for (user <- env.users) {
       user ! StartSimulation
@@ -97,10 +97,10 @@ object SimulationEnvironment {
 
    Thread.sleep(100)
 
-//    commandBus ! CreateOrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))
+    commandBus ! CreateOrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))
     Thread.sleep(100)
     val users =
-    for (userId <- 0 to 10) yield {
+    for (userId <- 0 to 0) yield {
       val user = system.actorOf(Props(new User(commandBus, userId)),"sim-user-"+userId)
       val accBtcId = AccountId(userId+"-BTC")
       val accEurId = AccountId(userId+"-EUR")

@@ -34,14 +34,14 @@ import com.weiglewilczek.slf4s.Logger
 import akka.actor.{Props, ActorSystem}
 import eventstore._
 import domain.CommandBus
-import projections.{OrderCounterProjection, LoggingProjection, AccountProjection}
+import projections.{OrderCounterProjection, AccountProjection}
 import domain.sagas.{ProcessPaymentsSagaRouter, PlaceOrderSagaRouter}
-import com.typesafe.config.ConfigFactory
 import eventstore.SubscribeMsg
-import domain.account.{AccountService, AccountProcessor}
-import domain.orderbook.{OrderBookService, OrderBookProcessor}
+import domain.account.AccountService
+import domain.orderbook.OrderBookService
 import cqrs.{Identity, Event}
-import myeventstore.{GYEventStoreActor, FakeEventStore, EventStoreActor}
+import myeventstore.{FakeEventStoreBridgeActor, GYEventStoreBridgeActor}
+import eventstore.tcp.ConnectionActor
 
 object Service {
   val log = Logger("Console")
@@ -61,10 +61,13 @@ object Service {
 object ServiceEnvironment {
   val system = ActorSystem("bitcoin-xchange")//,  ConfigFactory.load.getConfig("bitcoin-xchange"))
   val handler = system.actorOf(Props(new SynchronousEventHandler()), "event-handler")
-  val eventStoreActor =  system.actorOf(Props(classOf[GYEventStoreActor[Event[Identity]]], handler), "event-store")
+  val eventStoreActor =  system.actorOf(Props(new ConnectionActor(Settings())), "event-store")
  // val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
-  val accountProcessor = system.actorOf(AccountService.props(eventStoreActor, handler), "account-processor" )
-  val orderBookProcessor = system.actorOf(OrderBookService.props(eventStoreActor, handler),  "orderbook-processor" )
+ val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor, handler)
+  val bridgeFake = FakeEventStoreBridgeActor.props(handler)
+
+  val accountProcessor = system.actorOf(AccountService.props(bridgeGY, handler), "account-processor" )
+  val orderBookProcessor = system.actorOf(OrderBookService.props(bridgeGY, handler),  "orderbook-processor" )
   val commandBus = system.actorOf(Props(new CommandBus(eventStoreActor, accountProcessor, orderBookProcessor)), "command-bus")
   val accountView = system.actorOf(Props(new AccountProjection()), "account-projection")
   val counter = system.actorOf(Props(new OrderCounterProjection()), "order-counter-projection")

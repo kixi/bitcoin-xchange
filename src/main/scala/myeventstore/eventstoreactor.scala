@@ -94,10 +94,12 @@ class EventStoreActor[+E](eventHandler: ActorRef, store: EventStore[E]) extends 
   }
 }
 
-
-class GYEventStoreActor[+E](eventHandler: ActorRef) extends Actor with ActorLogging {
-  val es = context.actorOf(Props(classOf[ConnectionActor], Settings()), "event-store-gy")
-  val senderMap = mutable.Map.empty[StreamId, ActorRef]
+object GYEventStoreBridgeActor {
+  def props(eventStore: ActorRef, eventHandler: ActorRef): Props = {
+    Props(classOf[GYEventStoreBridgeActor], eventStore, eventHandler)
+  }
+}
+class GYEventStoreBridgeActor(eventStore: ActorRef, eventHandler: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
     case msg@AppendEventsToStream(streamId, version, events, boomerang) =>
@@ -107,34 +109,51 @@ class GYEventStoreActor[+E](eventHandler: ActorRef) extends Actor with ActorLogg
           val streamMetadata = ByteString(evt.getClass.getSimpleName)
           new Event(UUID.randomUUID(), "testtype", ByteString(JavaSerializer.writeObject(evt)), streamMetadata)
         }
-      es ! AppendToStream(StreamId(streamId), AnyVersion, eventList)
+      eventStore ! AppendToStream(StreamId(streamId), AnyVersion, eventList)
       //TODO must be done by EventStore!
       events.foreach(eventHandler ! _)
     case LoadEventStream(streamId, boomerang) =>
       log.debug("Read events from store - stream id=" + streamId)
-      senderMap.put(StreamId(streamId), sender)
-      es ! ReadStreamEvents(StreamId(streamId), 0, Int.MaxValue, resolveLinkTos = false, ReadDirection.Forward)
+      eventStore ! ReadStreamEvents(StreamId(streamId), 0, Int.MaxValue, resolveLinkTos = false, ReadDirection.Forward)
 
     case ReadStreamEventsCompleted(events, ReadStreamResult.Success, _, _, _, _, _) =>
       if (!events.isEmpty) {
         val streamId = events.head.eventRecord.streamId
-        val Some(s) = senderMap.get(streamId)
         val evts =
           (for (e <- events) yield {
             val eventData = e.eventRecord.event.data
             val bytes = eventData.toArray
             JavaSerializer.readObject(bytes)
           }).toList
-        s ! EventsLoaded(EventStream(evts, StreamRevision(evts.size)), None)
+        context.parent ! EventsLoaded(EventStream(evts, StreamRevision(evts.size)), None)
       }
-    case ReadStreamEventsCompleted(events, ReadStreamResult.NoStream, _, _, _, _, _) =>
-        val Some(s) = senderMap.get(StreamId("BTCEUR"))
-          s ! EventsLoaded(EventStream(Nil, StreamRevision(0)), None)
+    case msg @ ReadStreamEventsCompleted(events, ReadStreamResult.NoStream, _, _, _, _, _) =>
+      context.parent ! EventsLoaded(EventStream(Nil, StreamRevision(0)), None)
 
+    case msg : AppendToStreamSucceed =>
+      context.parent ! "committed"
     case cmd =>
       log.error(s"unknown command $cmd")
   }
 
 
 }
+
+object FakeEventStoreBridgeActor {
+  def props(eventHandler: ActorRef): Props = {
+    Props(classOf[FakeEventStoreBridgeActor], eventHandler)
+  }
+}
+
+class FakeEventStoreBridgeActor(eventHandler: ActorRef) extends Actor with ActorLogging {
+  def receive = {
+    case msg@AppendEventsToStream(streamId, version, events, boomerang) =>
+      log.debug("trying to commit to event store: {}", msg)
+      events.foreach(eventHandler ! _)
+    case LoadEventStream(streamId, boomerang) =>
+      log.debug("Read events from store - stream id=" + streamId)
+      context.parent ! EventsLoaded(EventStream(Nil, StreamRevision(0)), None)
+  }
+}
+
 

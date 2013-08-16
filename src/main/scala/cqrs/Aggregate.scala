@@ -41,7 +41,7 @@ trait Message[+A <: Identity] extends Serializable {
   def timestamp: DateTime
 }
 
-trait Command[A <: Identity] extends Message[A]
+trait Command[+A <: Identity] extends Message[A]
 
 trait Event[+A <: Identity] extends Message[A]
 

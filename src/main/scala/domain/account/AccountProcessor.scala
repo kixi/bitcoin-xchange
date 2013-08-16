@@ -35,11 +35,7 @@ package domain.account
 import cqrs._
 import akka.actor.{Props, ActorLogging, Actor, ActorRef}
 import domain._
-import domain.RequestMoneyWithdrawal
-import domain.OpenAccount
-import domain.DepositMoney
 import myeventstore._
-import domain.orderbook.{OrderBookFactory, OrderBook, OrderBookActor}
 import scala.collection.immutable.Queue
 import myeventstore.LoadEventStream
 import domain.OpenAccount
@@ -47,22 +43,12 @@ import scala.Some
 import domain.DepositMoney
 import myeventstore.EventStream
 import domain.RequestMoneyWithdrawal
-import domain.account.Account
-import domain.AccountId
-import myeventstore.EventsLoaded
-import domain.ConfirmMoneyWithdrawal
-import myeventstore.LoadEventStream
-import domain.OpenAccount
-import scala.Some
-import domain.DepositMoney
-import myeventstore.EventStream
-import domain.RequestMoneyWithdrawal
-import domain.account.Account
 import domain.AccountId
 import myeventstore.AppendEventsToStream
 import myeventstore.EventsLoaded
 import domain.ConfirmMoneyWithdrawal
 
+/*
 class AccountProcessor(eventStore: ActorRef) extends AggregateProcessor[AccountFactory,Account, AccountId, AccountCommand, AccountEvent](eventStore) {
   val factory = new AccountFactory
 
@@ -74,15 +60,15 @@ class AccountProcessor(eventStore: ActorRef) extends AggregateProcessor[AccountF
   }
 
 }
-
+*/
 object AccountService {
-  def props(eventStore: ActorRef, handler: ActorRef) = Props(classOf[AccountService], eventStore, handler)
+  def props(bridge : Props, handler: ActorRef) = Props(classOf[AccountService], bridge, handler)
 }
-class AccountService(eventStore: ActorRef, handler: ActorRef) extends Actor with ActorLogging {
+class AccountService(bridge: Props, handler: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
     case cmd: AccountCommand => {
-      context.child(cmd.id.id) match {
+      context.child("account-"+cmd.id.id) match {
         case Some(accountActor) => accountActor forward cmd
         case None => createActor(cmd.id) forward cmd
       }
@@ -90,11 +76,10 @@ class AccountService(eventStore: ActorRef, handler: ActorRef) extends Actor with
   }
 
   def createActor(accountId : AccountId) = {
-    val actor = context.actorOf(AggregateActor.props(eventStore, handler, AccountState(accountId)),"account-"+accountId.id)
+    val actor = context.actorOf(AggregateActor.props(bridge, handler, AccountState(accountId)),"account-"+accountId.id)
     context.watch(actor)
     actor
   }
-
 }
 
 
@@ -105,14 +90,8 @@ trait ActorState {
   def restoreAggregate(msg: EventsLoaded[AccountCommand]):ActorState
   def process(cmd: AccountCommand):ActorState
 
-  def publish(publishFunction : (String, List[AccountEvent]) => Unit) {
-    val events = aggregate.get.uncommittedEvents.reverse
-    aggregate.get.markCommitted
-    publishFunction(aggregateId, events)
-  }
 }
-
-case class AggregateNotLoadedException(id: Identity, aggregateType: Class[_]) extends RuntimeException
+case class AggregateNotLoadedException(id: Identity, aggregateType: Class[_], msg: String) extends RuntimeException(s"$aggregateType, id=$id: $msg")
 
 case class AccountState(accountId: AccountId, aggregate: Option[Account] = None) extends ActorState {
   def aggregateId = accountId.id
@@ -132,7 +111,7 @@ case class AccountState(accountId: AccountId, aggregate: Option[Account] = None)
         case Some(account) =>
           copy (aggregate = Some(processAlter(cmd, account)))
         case None =>
-          throw new AggregateNotLoadedException(accountId, Account.getClass)
+          throw new AggregateNotLoadedException(accountId, Account.getClass, s"Unable to process command $cmd")
       }
   }
 
@@ -149,15 +128,25 @@ case class AccountState(accountId: AccountId, aggregate: Option[Account] = None)
     case cmd: ConfirmMoneyWithdrawal =>
       account.confirmMoneyWithdrawal(cmd.transactionId)
   }
+
+  def publish(publishFunction : (String, List[AccountEvent]) => Unit) : AccountState = {
+    val events = aggregate.get.uncommittedEvents.reverse
+    publishFunction(aggregateId, events)
+    copy(aggregate = Some(aggregate.get.markCommitted))
+  }
+
 }
 
 object AggregateActor {
-  def props(eventStore: ActorRef, handler: ActorRef, state: AccountState) = Props(classOf[AggregateActor], eventStore, handler, state)
+  def props(bridge: Props, handler: ActorRef, state: AccountState) = Props(classOf[AggregateActor], bridge, handler, state)
 }
-class AggregateActor(eventStore: ActorRef, eventHandler: ActorRef, var state: AccountState) extends Actor with ActorLogging {
+class AggregateActor(bridge: Props, eventHandler: ActorRef, var state: AccountState) extends Actor with ActorLogging {
 
-  override def preStart ={
-    eventStore ! LoadEventStream(state.aggregateId, None)
+  val bridgeActor = context.actorOf(bridge, "bridge-"+state.aggregateId)
+
+  override def preStart = {
+    log.info(s"restarting actore for $state")
+    bridgeActor ! LoadEventStream(state.aggregateId, None)
   }
 
   def receive = loading()
@@ -183,13 +172,16 @@ class AggregateActor(eventStore: ActorRef, eventHandler: ActorRef, var state: Ac
 
   def running : Receive = {
     case cmd: AccountCommand =>
-      state.process(cmd.asInstanceOf[AccountCommand])
-      state.publish(publish)
+      state = state.process(cmd.asInstanceOf[AccountCommand])
+      state = state.publish(publish)
+    case "committed" =>
+      //TODO must be done by EventStore!
+     // events.foreach(eventHandler ! _)
     case msg =>
       log.error(s"Unknown command $msg")
   }
 
   private def publish(streamId: String, events: List[AccountEvent]) {
-    eventStore ! AppendEventsToStream(streamId, StreamRevision.NoConflict,events, None )
+    bridgeActor ! AppendEventsToStream(streamId, StreamRevision.NoConflict,events, None )
   }
 }

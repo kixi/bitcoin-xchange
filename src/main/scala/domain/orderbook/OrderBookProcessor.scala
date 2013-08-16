@@ -77,10 +77,10 @@ class OrderBookProcessor(val eventStore: ActorRef) extends AggregateProcessor[Or
 }
 
 object OrderBookService {
-  def props(eventStore: ActorRef, handler: ActorRef) = Props(classOf[OrderBookService], eventStore, handler)
+  def props(props: Props, handler: ActorRef) = Props(classOf[OrderBookService], props, handler)
 }
 
-class OrderBookService(eventStore: ActorRef, handler: ActorRef) extends Actor with ActorLogging {
+class OrderBookService(props: Props, handler: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
     case cmd: OrderBookCommand => {
@@ -92,22 +92,23 @@ class OrderBookService(eventStore: ActorRef, handler: ActorRef) extends Actor wi
   }
 
   private def createActor(cmdId : OrderBookId) = {
-    val actor = context.actorOf(OrderBookActor.props(eventStore, handler, cmdId),cmdId.id)
+    val actor = context.actorOf(OrderBookActor.props(props, handler, cmdId),cmdId.id)
     context.watch(actor)
     actor
   }
 }
 
 object OrderBookActor {
-  def props(eventStore: ActorRef,handler: ActorRef, orderBookId: OrderBookId) = Props(classOf[OrderBookActor],eventStore, handler, orderBookId)
+  def props(props: Props, handler: ActorRef, orderBookId: OrderBookId) = Props(classOf[OrderBookActor],props, handler, orderBookId)
 }
 
-class OrderBookActor(eventStore: ActorRef, eventHandler: ActorRef, orderBookId: OrderBookId) extends Actor with ActorLogging {
+class OrderBookActor(bridge: Props, eventHandler: ActorRef, orderBookId: OrderBookId) extends Actor with ActorLogging {
 
   var orderBook : Option[OrderBook] = None
+  val bridgeActor = context.actorOf(bridge, "bridge-"+orderBookId.id)
 
   override def preStart ={
-    eventStore ! LoadEventStream(orderBookId.id, None)
+    bridgeActor ! LoadEventStream(orderBookId.id, None)
   }
 
   def receive = loading()
@@ -176,7 +177,7 @@ class OrderBookActor(eventStore: ActorRef, eventHandler: ActorRef, orderBookId: 
   }
 
   private def publish {
-    eventStore ! AppendEventsToStream(orderBookId.id, StreamRevision.NoConflict,orderBook.get.uncommittedEventsReverse.reverse, None )
+    bridgeActor ! AppendEventsToStream(orderBookId.id, StreamRevision.NoConflict,orderBook.get.uncommittedEventsReverse.reverse, None )
   //  implicit val timeout = Timeout(5000)
   //  Await.result((eventStore ? AppendEventsToStream(orderBookId.toString, StreamRevision.NoConflict,orderBook.get.uncommittedEventsReverse.reverse, None )), timeout.duration)
     orderBook = Some(orderBook.get.markCommitted)
