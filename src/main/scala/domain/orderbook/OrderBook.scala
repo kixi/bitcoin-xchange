@@ -46,9 +46,9 @@ class OrderBookFactory extends AggregateFactory[OrderBook, OrderBookEvent, Order
       e :: Nil, 0, e.id,
       Map.empty[OrderId, LimitOrder], List.empty[Order], List.empty[Order],
       e.currency,
-      Money(0,e.currency),
-      Money(0,e.currency),
-      Money(0,e.currency))
+      Money(0, e.currency),
+      Money(0, e.currency),
+      Money(0, e.currency))
   }
 }
 
@@ -57,7 +57,7 @@ case class OrderBook(
                       uncommittedEventsReverse: List[OrderBookEvent] = Nil,
                       version: Int = 0,
                       id: OrderBookId,
-                      preparedOrders : Map[OrderId, LimitOrder] = Map.empty[OrderId, LimitOrder],
+                      preparedOrders: Map[OrderId, LimitOrder] = Map.empty[OrderId, LimitOrder],
                       buyOrders: List[Order] = Nil,
                       sellOrders: List[Order] = Nil,
                       currency: CurrencyUnit,
@@ -80,11 +80,11 @@ case class OrderBook(
 
   def confirmOrderPlacement(orderId: OrderId, transactionId: TransactionId) = {
     preparedOrders.get(orderId) match {
-      case Some(order:Order) => {
-        applyEvent(new OrderPlacementConfirmed(id, transactionId,  orderId)).
+      case Some(order: Order) => {
+        applyEvent(new OrderPlacementConfirmed(id, transactionId, orderId)).
           makeOrder(order)
       }
-      case None => throw new RuntimeException("Order with ID "+orderId+" was not prepared and cannot be confirmed!")
+      case None => throw new RuntimeException("Order with ID " + orderId + " was not prepared and cannot be confirmed!")
     }
   }
 
@@ -115,7 +115,7 @@ case class OrderBook(
     }
   }
 
-  private def clearExpiredOrders(orders: List[Order]) : OrderBook = {
+  private def clearExpiredOrders(orders: List[Order]): OrderBook = {
     if (!orders.isEmpty && orders.head.expired) {
       val this0 = applyEvent(OrderExpired(id, orders.head))
       this0.clearExpiredOrders(orders.tail)
@@ -123,7 +123,6 @@ case class OrderBook(
       this
     }
   }
-
 
 
   private def matchOrder(order: Order, matchList: List[Order]): OrderBook = {
@@ -141,13 +140,13 @@ case class OrderBook(
     }
   }
 
-  private def copyOrder(order: Order, q: Quantity):Order = order match {
+  private def copyOrder(order: Order, q: Quantity): Order = order match {
     case o: LimitOrder => o.copy(quantity = q)
     case o: MarketOrder => o.copy(quantity = q)
   }
 
   private def queueOrder(order: Order): OrderBook = {
-      applyEvent(OrderQueued(this.id, order))
+    applyEvent(OrderQueued(this.id, order))
   }
 
   private def adjustOrder(order: Order): OrderBook = {
@@ -181,14 +180,15 @@ case class OrderBook(
 
   override def applyEvent(e: OrderBookEvent): OrderBook = e match {
     case e: OrderQueued => when(e)
-     case e: OrderAdjusted => when(e)
+    case e: OrderAdjusted => when(e)
     case e: OrdersExecuted => when(e)
     case e: OrderExpired => when(e)
     case event: OrderPlaced => when(event)
     case event: OrderPlacementPrepared => when(event)
     case event: OrderPlacementConfirmed => when(event)
-    case event => throw new UnhandledEventException("Aggregate Account does not handle event " + event)
+    case event => throw new UnhandledEventException("Aggregate OrderBook does not handle event " + event)
   }
+
   def markCommitted = copy(uncommittedEventsReverse = Nil)
 
   def when(event: OrderPlaced) = {
@@ -219,7 +219,7 @@ case class OrderBook(
       this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse, sellOrders = event.order :: sellOrders.tail)
   }
 
-   def when(event: OrdersExecuted) = {
+  def when(event: OrdersExecuted) = {
     if (!sellOrders.isEmpty && event.sell == sellOrders.head) {
       this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse, sellOrders = sellOrders.tail, referencePrice = event.price)
     } else if (!buyOrders.isEmpty && event.buy == buyOrders.head) {

@@ -32,14 +32,36 @@ package domain.account
 
 
 
-import cqrs.{Identity, Event, AggregateProcessor}
+import cqrs._
 import akka.actor.{Props, ActorLogging, Actor, ActorRef}
 import domain._
 import domain.RequestMoneyWithdrawal
 import domain.OpenAccount
 import domain.DepositMoney
-import eventstore.EventStream
+import myeventstore._
 import domain.orderbook.{OrderBookFactory, OrderBook, OrderBookActor}
+import scala.collection.immutable.Queue
+import myeventstore.LoadEventStream
+import domain.OpenAccount
+import scala.Some
+import domain.DepositMoney
+import myeventstore.EventStream
+import domain.RequestMoneyWithdrawal
+import domain.account.Account
+import domain.AccountId
+import myeventstore.EventsLoaded
+import domain.ConfirmMoneyWithdrawal
+import myeventstore.LoadEventStream
+import domain.OpenAccount
+import scala.Some
+import domain.DepositMoney
+import myeventstore.EventStream
+import domain.RequestMoneyWithdrawal
+import domain.account.Account
+import domain.AccountId
+import myeventstore.AppendEventsToStream
+import myeventstore.EventsLoaded
+import domain.ConfirmMoneyWithdrawal
 
 class AccountProcessor(eventStore: ActorRef) extends AggregateProcessor[AccountFactory,Account, AccountId, AccountCommand, AccountEvent](eventStore) {
   val factory = new AccountFactory
@@ -54,50 +76,120 @@ class AccountProcessor(eventStore: ActorRef) extends AggregateProcessor[AccountF
 }
 
 object AccountService {
-  def props(eventStore: ActorRef) = Props(classOf[AccountService], eventStore)
+  def props(eventStore: ActorRef, handler: ActorRef) = Props(classOf[AccountService], eventStore, handler)
 }
-class AccountService(eventStore: ActorRef) extends Actor with ActorLogging {
+class AccountService(eventStore: ActorRef, handler: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
     case cmd: AccountCommand => {
       context.child(cmd.id.id) match {
-        case Some(orderBookActor) => orderBookActor forward cmd
+        case Some(accountActor) => accountActor forward cmd
         case None => createActor(cmd.id) forward cmd
       }
     }
   }
 
   def createActor(accountId : AccountId) = {
-    val actor = context.actorOf(AccountActor.props(eventStore, accountId),accountId.id)
+    val actor = context.actorOf(AggregateActor.props(eventStore, handler, AccountState(accountId)),"account-"+accountId.id)
     context.watch(actor)
     actor
   }
 
 }
 
-object AccountActor {
-  def props(handler: ActorRef, accountId: AccountId) = Props(classOf[AccountActor], handler, accountId)
+
+trait ActorState {
+  def aggregateId : String
+  def aggregate: Option[Account]
+
+  def restoreAggregate(msg: EventsLoaded[AccountCommand]):ActorState
+  def process(cmd: AccountCommand):ActorState
+
+  def publish(publishFunction : (String, List[AccountEvent]) => Unit) {
+    val events = aggregate.get.uncommittedEvents.reverse
+    aggregate.get.markCommitted
+    publishFunction(aggregateId, events)
+  }
 }
-class AccountActor(eventHandler: ActorRef, accountId: AccountId) extends Actor with ActorLogging {
 
-  var account : Account = _
+case class AggregateNotLoadedException(id: Identity, aggregateType: Class[_]) extends RuntimeException
 
-  def receive = {
+case class AccountState(accountId: AccountId, aggregate: Option[Account] = None) extends ActorState {
+  def aggregateId = accountId.id
+
+  def restoreAggregate(msg: EventsLoaded[AccountCommand]): AccountState = {
+    if (msg.stream.streamVersion != StreamRevision.Initial)
+      copy(aggregate = Some(new AccountFactory().restoreFromHistory(msg.stream.events.asInstanceOf[List[AccountEvent]])))
+    else
+      copy(aggregate = None)
+  }
+
+  def process(cmd: AccountCommand):AccountState = cmd match {
     case cmd: OpenAccount =>
-      publishEvents(new AccountFactory().create(cmd.id, cmd.currency))
+      copy(aggregate = Some(processCreate(cmd)))
+    case cmd: AccountCommand =>
+      aggregate match {
+        case Some(account) =>
+          copy (aggregate = Some(processAlter(cmd, account)))
+        case None =>
+          throw new AggregateNotLoadedException(accountId, Account.getClass)
+      }
+  }
+
+  def processCreate(cmd: AccountCommand) : Account = cmd match {
+    case cmd: OpenAccount =>
+      new AccountFactory().create(cmd.id, cmd.currency)
+  }
+
+  def processAlter(cmd: AccountCommand, account: Account) : Account = cmd match {
     case cmd: DepositMoney =>
-      publishEvents(account.depositMoney(cmd.amount))
+      account.depositMoney(cmd.amount)
     case cmd: RequestMoneyWithdrawal =>
-      publishEvents(account.requestMoneyWithdrawal(cmd.transactionId, cmd.amount))
+      account.requestMoneyWithdrawal(cmd.transactionId, cmd.amount)
     case cmd: ConfirmMoneyWithdrawal =>
-      publishEvents(account.confirmMoneyWithdrawal(cmd.transactionId))
+      account.confirmMoneyWithdrawal(cmd.transactionId)
+  }
+}
+
+object AggregateActor {
+  def props(eventStore: ActorRef, handler: ActorRef, state: AccountState) = Props(classOf[AggregateActor], eventStore, handler, state)
+}
+class AggregateActor(eventStore: ActorRef, eventHandler: ActorRef, var state: AccountState) extends Actor with ActorLogging {
+
+  override def preStart ={
+    eventStore ! LoadEventStream(state.aggregateId, None)
   }
 
-  private def publishEvents(f: => Account) {
-    account = f
-    for (event <- account.uncommittedEventsReverse.reverse)
-      eventHandler ! event
-    account = account.markCommitted
+  def receive = loading()
+
+  def loading(stash: Queue[(ActorRef, AccountCommand)] = Queue()) : Receive = {
+    case msg: EventsLoaded[AccountCommand] =>
+      state = state.restoreAggregate(msg.asInstanceOf[EventsLoaded[AccountCommand]])
+      log.debug(s"Aggregate restored $state")
+      context become running
+      processStash(stash)
+    case command: AccountCommand =>
+      log.debug(s"stashing while waiting for aggregate $state to be restored: $command")
+      context become loading(stash enqueue (sender -> command))
+    case msg =>
+      log.warning(s"Unknown message $msg")
   }
 
+  private def processStash(stash: Queue[(ActorRef, AccountCommand)]) {
+    for((s, cmd) <- stash) {
+      self.tell(cmd, sender = s )
+    }
+  }
+
+  def running : Receive = {
+    case cmd: AccountCommand =>
+      state.process(cmd.asInstanceOf[AccountCommand])
+      state.publish(publish)
+    case msg =>
+      log.error(s"Unknown command $msg")
+  }
+
+  private def publish(streamId: String, events: List[AccountEvent]) {
+    eventStore ! AppendEventsToStream(streamId, StreamRevision.NoConflict,events, None )
+  }
 }

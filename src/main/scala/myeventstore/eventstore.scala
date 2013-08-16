@@ -28,7 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package myeventstore
 
 
 import scala.collection._
@@ -93,6 +93,12 @@ case class Conflict[+E](streamId: String, actual: StreamRevision, expected: Stre
 trait EventStore[E] {
   def loadEventStream(streamId:String, since: StreamRevision = StreamRevision.Initial, to: StreamRevision = StreamRevision.Maximum):List[E]
   def appendEventsToStream(streamId: String, expectedVersion: StreamRevision, events: List[E]):CommitResult[E]
+}
+
+class FakeEventStore[E] extends EventStore[E]  {
+  def loadEventStream(streamId: String, since: StreamRevision, to: StreamRevision): List[E] = List.empty[E]
+
+  def appendEventsToStream(streamId: String, expectedVersion: StreamRevision, events: List[E]): CommitResult[E] = Right(Commit(streamId, expectedVersion+1, events))
 }
 
 class InMemoryEventStore[E] extends EventStore[E] {

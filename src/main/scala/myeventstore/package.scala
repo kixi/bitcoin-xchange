@@ -28,7 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package object eventstore {
+package object myeventstore {
   /**
    * The result of a commit attempt is either a `Conflict` or a successful `Commit`.
    */

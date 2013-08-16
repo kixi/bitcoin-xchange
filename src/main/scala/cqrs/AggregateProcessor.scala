@@ -31,15 +31,12 @@
 package cqrs
 
 import akka.actor.{ActorRef, ActorLogging, Actor}
-import domain.account.{Account, AccountFactory}
 import domain._
-import domain.account.Account
-import eventstore._
-import domain.AccountId
-import eventstore.EventStream
-import eventstore.LoadEventStream
-import eventstore.EventsCommitted
-import eventstore.AppendEventsToStream
+import myeventstore._
+import myeventstore.EventStream
+import myeventstore.LoadEventStream
+import myeventstore.EventsCommitted
+import myeventstore.AppendEventsToStream
 
 /**
  * Created with IntelliJ IDEA.

@@ -41,6 +41,7 @@ import eventstore.SubscribeMsg
 import domain.account.{AccountService, AccountProcessor}
 import domain.orderbook.{OrderBookService, OrderBookProcessor}
 import cqrs.{Identity, Event}
+import myeventstore.{GYEventStoreActor, FakeEventStore, EventStoreActor}
 
 object Service {
   val log = Logger("Console")
@@ -58,11 +59,11 @@ object Service {
 }
 
 object ServiceEnvironment {
-  val system = ActorSystem("bitcoin-xchange",  ConfigFactory.load.getConfig("bitcoin-xchange"))
+  val system = ActorSystem("bitcoin-xchange")//,  ConfigFactory.load.getConfig("bitcoin-xchange"))
   val handler = system.actorOf(Props(new SynchronousEventHandler()), "event-handler")
-  val eventStoreActor =  system.actorOf(Props(classOf[EventStoreActor[Event[Identity]]], handler, new InMemoryEventStore[Event[Identity]]), "event-store")
+  val eventStoreActor =  system.actorOf(Props(classOf[GYEventStoreActor[Event[Identity]]], handler), "event-store")
  // val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
-  val accountProcessor = system.actorOf(Props(new AccountService(handler)), "account-processor" )
+  val accountProcessor = system.actorOf(AccountService.props(eventStoreActor, handler), "account-processor" )
   val orderBookProcessor = system.actorOf(OrderBookService.props(eventStoreActor, handler),  "orderbook-processor" )
   val commandBus = system.actorOf(Props(new CommandBus(eventStoreActor, accountProcessor, orderBookProcessor)), "command-bus")
   val accountView = system.actorOf(Props(new AccountProjection()), "account-projection")

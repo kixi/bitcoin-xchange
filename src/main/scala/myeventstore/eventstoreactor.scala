@@ -28,11 +28,20 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package myeventstore
 
 import akka.actor._
 import akka.dispatch.{PriorityGenerator, UnboundedPriorityMailbox}
 import com.typesafe.config.Config
+import java.util.UUID
+import eventstore.tcp.ConnectionActor
+import akka.util.ByteString
+import scala.collection._
+import eventstore._
+import eventstore.ReadStreamEventsCompleted
+import scala.Some
+import eventstore.ReadStreamEvents
+import eventstore.StreamId
 
 case class EventStream[E](events: List[E], streamVersion: StreamRevision)
 
@@ -84,3 +93,48 @@ class EventStoreActor[+E](eventHandler: ActorRef, store: EventStore[E]) extends 
       sender ! EventsLoaded(EventStream(events, StreamRevision(events.size)), boomerang)
   }
 }
+
+
+class GYEventStoreActor[+E](eventHandler: ActorRef) extends Actor with ActorLogging {
+  val es = context.actorOf(Props(classOf[ConnectionActor], Settings()), "event-store-gy")
+  val senderMap = mutable.Map.empty[StreamId, ActorRef]
+
+  def receive = {
+    case msg@AppendEventsToStream(streamId, version, events, boomerang) =>
+      log.debug("trying to commit to event store: {}", msg)
+      val eventList =
+        for (evt <- events) yield {
+          val streamMetadata = ByteString(evt.getClass.getSimpleName)
+          new Event(UUID.randomUUID(), "testtype", ByteString(JavaSerializer.writeObject(evt)), streamMetadata)
+        }
+      es ! AppendToStream(StreamId(streamId), AnyVersion, eventList)
+      //TODO must be done by EventStore!
+      events.foreach(eventHandler ! _)
+    case LoadEventStream(streamId, boomerang) =>
+      log.debug("Read events from store - stream id=" + streamId)
+      senderMap.put(StreamId(streamId), sender)
+      es ! ReadStreamEvents(StreamId(streamId), 0, Int.MaxValue, resolveLinkTos = false, ReadDirection.Forward)
+
+    case ReadStreamEventsCompleted(events, ReadStreamResult.Success, _, _, _, _, _) =>
+      if (!events.isEmpty) {
+        val streamId = events.head.eventRecord.streamId
+        val Some(s) = senderMap.get(streamId)
+        val evts =
+          (for (e <- events) yield {
+            val eventData = e.eventRecord.event.data
+            val bytes = eventData.toArray
+            JavaSerializer.readObject(bytes)
+          }).toList
+        s ! EventsLoaded(EventStream(evts, StreamRevision(evts.size)), None)
+      }
+    case ReadStreamEventsCompleted(events, ReadStreamResult.NoStream, _, _, _, _, _) =>
+        val Some(s) = senderMap.get(StreamId("BTCEUR"))
+          s ! EventsLoaded(EventStream(Nil, StreamRevision(0)), None)
+
+    case cmd =>
+      log.error(s"unknown command $cmd")
+  }
+
+
+}
+

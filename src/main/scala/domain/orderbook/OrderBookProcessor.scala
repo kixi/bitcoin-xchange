@@ -30,23 +30,30 @@
 
 package domain.orderbook
 
-import akka.actor.{Props, ActorLogging, ActorRef, Actor}
+import akka.actor._
 import domain._
-import domain.orderbook._
 import cqrs.{Event, Identity, AggregateProcessor}
-import eventstore._
-import scala.collection._
 import scala.collection.immutable.Queue
-import org.omg.CORBA.portable.StreamableValue
-import com.sun.corba.se.spi.ior.iiop.MaxStreamFormatVersionComponent
-import domain.orderbook.OrderBook
+import myeventstore._
+import com.typesafe.config.Config
+import akka.dispatch.{PriorityGenerator, UnboundedPriorityMailbox}
 import domain.CreateOrderBook
-import eventstore.LoadEventStream
 import domain.ConfirmOrderPlacement
 import scala.Some
-import eventstore.EventStream
 import domain.PrepareOrderPlacement
-import eventstore.EventsLoaded
+import domain.OrderBookId
+import domain.PlaceOrder
+import domain.orderbook.OrderBook
+import domain.CreateOrderBook
+import myeventstore.LoadEventStream
+import myeventstore.EventsConflicted
+import domain.ConfirmOrderPlacement
+import scala.Some
+import myeventstore.EventStream
+import myeventstore.EventsCommitted
+import domain.PrepareOrderPlacement
+import myeventstore.AppendEventsToStream
+import myeventstore.EventsLoaded
 import domain.OrderBookId
 import domain.PlaceOrder
 
@@ -108,13 +115,20 @@ class OrderBookActor(eventStore: ActorRef, eventHandler: ActorRef, orderBookId: 
   def loading(stash: Queue[(ActorRef, OrderBookCommand)] = Queue()) : Receive = {
     case msg: EventsLoaded[OrderBookCommand] =>
       orderBook = restoreAggregate(msg)
+      log.debug(s"Order book restored $orderBook")
       context become running
-      for((s, cmd) <- stash) {
-        self.tell(cmd, sender = s )
-      }
-    case command: OrderBookCommand =>
+      processStash(stash)
+     case command: OrderBookCommand =>
       log.debug(s"stashing while waiting for orderbook to be restored: $command")
       context become loading(stash enqueue (sender -> command))
+    case msg =>
+      log.warning(s"Unknown message $msg")
+  }
+
+  private def processStash(stash: Queue[(ActorRef, OrderBookCommand)]) {
+    for((s, cmd) <- stash) {
+      self.tell(cmd, sender = s )
+    }
   }
 
 
@@ -134,6 +148,21 @@ class OrderBookActor(eventStore: ActorRef, eventHandler: ActorRef, orderBookId: 
       publishEvents(_.prepareOrderPlacement(c.orderId, c.transactionId, c.order))
     case c: ConfirmOrderPlacement =>
       publishEvents(_.confirmOrderPlacement(c.orderId, c.transactionId))
+    case msg =>
+      log.warning(s"Unknown message $msg")
+  }
+
+  def waiting4Confirmation(stash: Queue[(ActorRef, OrderBookCommand)] = Queue()) : Receive = {
+    case command: OrderBookCommand =>
+      val newqueue = stash enqueue (sender-> command)
+    val size = newqueue.size
+      log.debug(s"Command arrived while waiting for event store confirmation - stash size: $size command $command")
+      context become waiting4Confirmation(newqueue)
+    case EventsCommitted(commit) =>
+      log.debug(s"Events committed: $commit")
+      context become running
+      processStash(stash)
+    case EventsConflicted(conflict, backback) =>
   }
 
   private def publishEvents(f: OrderBook => OrderBook) {
@@ -147,9 +176,28 @@ class OrderBookActor(eventStore: ActorRef, eventHandler: ActorRef, orderBookId: 
   }
 
   private def publish {
-    for (event <- orderBook.get.uncommittedEventsReverse.reverse)
-      eventHandler ! event
+    eventStore ! AppendEventsToStream(orderBookId.id, StreamRevision.NoConflict,orderBook.get.uncommittedEventsReverse.reverse, None )
+  //  implicit val timeout = Timeout(5000)
+  //  Await.result((eventStore ? AppendEventsToStream(orderBookId.toString, StreamRevision.NoConflict,orderBook.get.uncommittedEventsReverse.reverse, None )), timeout.duration)
     orderBook = Some(orderBook.get.markCommitted)
+ //   context become waiting4Confirmation()
   }
 
 }
+
+
+class AggregateActorPrioMailbox[E](settings: ActorSystem.Settings, config: Config)
+  extends UnboundedPriorityMailbox(
+    // Create a new PriorityGenerator, lower prio means more important
+    PriorityGenerator {
+      // 'highpriority messages should be treated first if possible
+      case msg: EventsCommitted[E] => 0
+
+      case msg: EventsConflicted[E] => 0
+
+      // PoisonPill when no other left
+      case PoisonPill => 3
+
+      // We default to 1, which is in between high and low
+      case otherwise => 1
+    })

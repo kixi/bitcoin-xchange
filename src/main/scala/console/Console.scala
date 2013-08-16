@@ -51,6 +51,7 @@ import domain.AccountId
 import domain.OrderBookId
 import domain.PlaceOrder
 import domain.TransactionId
+import service.ServiceEnvironment
 
 /**
  * Created with IntelliJ IDEA.
@@ -71,16 +72,16 @@ object Console {
 
     Thread.sleep(5000)
 
-    for(cmd <- env.commands.get("createOrderBook")) cmd.execute(env, "BTCEUR EUR".split(" "))
- /*   for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-EUR EUR".split(" "))
-    for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-BTC BTC".split(" "))
-    for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "2-EUR EUR".split(" "))
-    for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "2-BTC BTC".split(" "))
-    for(cmd <- env.commands.get("deposit")) cmd.execute(env, "1-EUR 10000 EUR".split(" "))
-    for(cmd <- env.commands.get("deposit")) cmd.execute(env, "1-BTC 50 BTC".split(" "))
-    for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-EUR 8000 EUR".split(" "))
-    for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-BTC 100 BTC".split(" "))
- */
+    /*    for(cmd <- env.commands.get("createOrderBook")) cmd.execute(env, "BTCEUR EUR".split(" "))
+        for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-EUR EUR".split(" "))
+        for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-BTC BTC".split(" "))
+        for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "2-EUR EUR".split(" "))
+        for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "2-BTC BTC".split(" "))
+        for(cmd <- env.commands.get("deposit")) cmd.execute(env, "1-EUR 10000 EUR".split(" "))
+        for(cmd <- env.commands.get("deposit")) cmd.execute(env, "1-BTC 50 BTC".split(" "))
+        for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-EUR 8000 EUR".split(" "))
+        for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-BTC 100 BTC".split(" "))
+     */
     while (true) {
       Thread.sleep(30)
 
@@ -118,10 +119,12 @@ case class ConsoleEnvironment(commandBus: ActorRef) {
 
 object ConsoleEnvironment {
   def buildEnvironment = {
-    val system = ActorSystem("bitcoin-xchange", ConfigFactory.load.getConfig("bitcoin-xchange-client"))
-    val remotePath =
-      "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
-    val commandBus = system.actorOf(Props(new LookupActor(remotePath)), "commandbus-client")
+    val system = ActorSystem("bitcoin-xchange")//, ConfigFactory.load.getConfig("bitcoin-xchange-client"))
+ //   val remotePath =
+ //     "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
+ //   val commandBus = system.actorOf(Props(new LookupActor(remotePath)), "commandbus-client")
+    val commandBus = ServiceEnvironment.commandBus
+    val eventHandler = ServiceEnvironment.handler
 
     ConsoleEnvironment(commandBus)
   }
