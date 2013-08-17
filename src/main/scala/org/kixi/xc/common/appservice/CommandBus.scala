@@ -28,48 +28,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package org.kixi.xc.common.appservice
+
+import akka.actor.{ActorLogging, Actor, ActorRef}
+import org.kixi.xc.core.orderbook.domain.OrderBookCommand
+import org.kixi.xc.core.account.domain.AccountCommand
 
 
-/*
-class EventStoreTest extends FunSuite {
-  test("add one event and receive same event to file event store") {
-    val store = new FileEventStore[Event[Identity]]("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-1", 0, events)
-
-    val stored = store.loadEventStream("TEST-1")
-
-    assert(events === stored)
+class CommandBus(eventStore: ActorRef, accountProcessor: ActorRef, orderBookService: ActorRef) extends Actor with ActorLogging {
+  def receive = {
+    case cmd: OrderBookCommand =>
+      log.debug("received " + cmd)
+      orderBookService ! cmd
+    case cmd: AccountCommand =>
+      log.debug("received " + cmd)
+      accountProcessor ! cmd
+    case cmd =>
+      log.warning("Received unknown command " + cmd)
   }
-
-  test("add two events of same type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: AccountOpened(AccountId("2"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-2", 0, events)
-
-    val stored = store.loadEventStream("TEST-2")
-
-    assert(events === stored)
-  }
-
-  test("add two events of different type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) ::
-      MoneyDeposited(AccountId("1"), Money(100, CurrencyUnit("EUR")), new Money(100, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-3", 0, events)
-
-    val stored = store.loadEventStream("TEST-3")
-
-    assert(events === stored)
-  }
-
 }
-
-     */

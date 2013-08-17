@@ -28,48 +28,39 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package domain.sagas
 
 
+/**
+ * User: guenter
+ * Date: 06.07.13
+ * Time: 10:59
+ */
 /*
-class EventStoreTest extends FunSuite {
-  test("add one event and receive same event to file event store") {
-    val store = new FileEventStore[Event[Identity]]("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-1", 0, events)
-
-    val stored = store.loadEventStream("TEST-1")
-
-    assert(events === stored)
+class CommandReceiverMock extends Actor {
+  var receivedCommands = List.empty[Command]
+  def receive = {
+    case e: Command => receivedCommands = e :: receivedCommands
   }
+}
 
-  test("add two events of same type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
+class PlaceOrderSagaTest extends TestKit(ActorSystem("test")) with FunSuite {
+  test("x") {
+    val commandDispatcher = TestActorRef[CommandReceiverMock]
+ //   val actorRef = system.actorOf(Props(new PlaceOrderSaga(commandDispatcher) ))
+    val fsm = TestFSMRef(new PlaceOrderSaga(commandDispatcher))
 
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: AccountOpened(AccountId("2"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
+    assert(fsm.stateName === Start)
+    assert(fsm.stateData === Uninitialized)
 
-    store.appendEventsToStream("TEST-2", 0, events)
+    fsm ! OrderPlaced(OrderBookId("1"), TransactionId("2"), LimitOrder("1", new DateTime(), CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), "B", AccountId("3"), AccountId("1")))
 
-    val stored = store.loadEventStream("TEST-2")
+    assert(commandDispatcher.underlyingActor.receivedCommands.head === RequestMoneyWithdrawal(AccountId("3"), TransactionId("2"), Money(500, CurrencyUnit("EUR"))))
+    fsm ! MoneyWithdrawalRequested(AccountId("3"), TransactionId("2"),Money(500, CurrencyUnit("EUR")), Money(0, CurrencyUnit("EUR")))
 
-    assert(events === stored)
-  }
+    assert(commandDispatcher.underlyingActor.receivedCommands.head === PrepareOrderPlacement(OrderBookId("1"), TransactionId("2"), OrderId("1"), LimitOrder("1", new DateTime(), CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), "B", AccountId("1"), AccountId("3"))))
 
-  test("add two events of different type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) ::
-      MoneyDeposited(AccountId("1"), Money(100, CurrencyUnit("EUR")), new Money(100, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-3", 0, events)
-
-    val stored = store.loadEventStream("TEST-3")
-
-    assert(events === stored)
   }
 
 }
-
-     */
+    */

@@ -28,48 +28,38 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package org.kixi.xc.projections
 
+import akka.actor.Actor
+import org.kixi.xc.core.account.domain.{AccountOpened, MoneyDeposited, AccountId}
+import org.kixi.xc.core.common.Money
 
-/*
-class EventStoreTest extends FunSuite {
-  test("add one event and receive same event to file event store") {
-    val store = new FileEventStore[Event[Identity]]("/data/")
+/**
+ * User: guenter
+ * Date: 20.06.13
+ * Time: 13:56
+ */
+case class ListAccounts(dummy: Int)
 
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
+class AccountProjection extends Actor {
 
-    store.appendEventsToStream("TEST-1", 0, events)
+  val accounts = scala.collection.mutable.Map[AccountId, Money]()
 
-    val stored = store.loadEventStream("TEST-1")
-
-    assert(events === stored)
+  def receive = {
+    case evt: MoneyDeposited => when(evt)
+    case evt: AccountOpened => when(evt)
+    case cmd: ListAccounts => {
+      sender ! accounts.toList
+    }
   }
 
-  test("add two events of same type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: AccountOpened(AccountId("2"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-2", 0, events)
-
-    val stored = store.loadEventStream("TEST-2")
-
-    assert(events === stored)
+  def when(e: MoneyDeposited) {
+    accounts(e.id) = e.balance
   }
 
-  test("add two events of different type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) ::
-      MoneyDeposited(AccountId("1"), Money(100, CurrencyUnit("EUR")), new Money(100, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-3", 0, events)
-
-    val stored = store.loadEventStream("TEST-3")
-
-    assert(events === stored)
+  def when(e: AccountOpened) {
+    accounts put(e.id, e.balance)
   }
+
 
 }
-
-     */

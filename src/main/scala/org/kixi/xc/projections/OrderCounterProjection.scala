@@ -28,48 +28,49 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package org.kixi.xc.projections
 
+import akka.actor.Actor
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.DateTime
+import org.kixi.xc.core.orderbook.domain.{OrderPlaced, OrdersExecuted, OrderQueued}
+import org.kixi.xc.core.account.domain.{MoneyWithdrawalConfirmed, MoneyDeposited}
 
-/*
-class EventStoreTest extends FunSuite {
-  test("add one event and receive same event to file event store") {
-    val store = new FileEventStore[Event[Identity]]("/data/")
+class OrderCounterProjection extends Actor {
+  var ordersQueued = 0
+  var ordersExecuted = 0
+  var deposits = 0
+  var withdrawals = 0
+  var placements = 0
 
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
+  var total = 0
 
-    store.appendEventsToStream("TEST-1", 0, events)
+  val displayAfter = 10000
 
-    val stored = store.loadEventStream("TEST-1")
+  val fmt = DateTimeFormat.forPattern("HH:mm:ss:SSSS")
 
-    assert(events === stored)
+  def receive: Actor.Receive = {
+    case _: OrderQueued =>
+      log()
+      ordersQueued += 1
+    case _: OrdersExecuted =>
+      log()
+      ordersExecuted += 1
+    case _: MoneyDeposited =>
+      log()
+      deposits += 1
+    case _: MoneyWithdrawalConfirmed =>
+      log()
+      withdrawals += 1
+    case _: OrderPlaced =>
+      log()
+      placements += 1
+    case _ =>
   }
 
-  test("add two events of same type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: AccountOpened(AccountId("2"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-2", 0, events)
-
-    val stored = store.loadEventStream("TEST-2")
-
-    assert(events === stored)
+  def log() {
+    total += 1
+    if (total % displayAfter == 0)
+      System.out.println(fmt.print(new DateTime()) + " queued=" + ordersQueued + ", executed=" + ordersExecuted + ", deposits=" + deposits + ", withdrawals=" + withdrawals + ", placements=" + placements)
   }
-
-  test("add two events of different type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) ::
-      MoneyDeposited(AccountId("1"), Money(100, CurrencyUnit("EUR")), new Money(100, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-3", 0, events)
-
-    val stored = store.loadEventStream("TEST-3")
-
-    assert(events === stored)
-  }
-
 }
-
-     */

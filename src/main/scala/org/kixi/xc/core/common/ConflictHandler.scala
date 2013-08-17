@@ -28,48 +28,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package org.kixi.xc.core.common
 
+import org.kixi.cqrslib.aggregate.{Identity, Event}
+import org.kixi.xc.core.orderbook.domain.{OrderBookEvent, OrderAdjusted, OrdersExecuted}
+import org.kixi.xc.core.account.domain.{MoneyWithdrawalRequested, MoneyDeposited}
 
-/*
-class EventStoreTest extends FunSuite {
-  test("add one event and receive same event to file event store") {
-    val store = new FileEventStore[Event[Identity]]("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-1", 0, events)
-
-    val stored = store.loadEventStream("TEST-1")
-
-    assert(events === stored)
+/**
+ * User: guenter
+ * Date: 17.08.13
+ * Time: 18:05
+ */
+object ConflictHandler {
+  def canConflict(event: Event[Identity]) = {
+    event match {
+      case _: OrdersExecuted => true
+      case _: OrderAdjusted => true
+      case _: OrderBookEvent => false
+      case _ => true
+    }
   }
 
-  test("add two events of same type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
+  def conflictsWith(committed: Event[Identity], attempted: Event[Identity]): Boolean = (committed, attempted) match {
+    case (_, a: OrdersExecuted) => true
+    case (_, a: OrderAdjusted) => true
+    case (c: OrderBookEvent, a: OrderBookEvent) => false
+    case (_: MoneyDeposited, _: MoneyWithdrawalRequested) => true
+    case (_: MoneyWithdrawalRequested, _: MoneyDeposited) => true
 
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: AccountOpened(AccountId("2"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-2", 0, events)
-
-    val stored = store.loadEventStream("TEST-2")
-
-    assert(events === stored)
+    case (c, a) => (c.getClass == a.getClass) && (c.id == a.id)
   }
-
-  test("add two events of different type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) ::
-      MoneyDeposited(AccountId("1"), Money(100, CurrencyUnit("EUR")), new Money(100, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-3", 0, events)
-
-    val stored = store.loadEventStream("TEST-3")
-
-    assert(events === stored)
-  }
-
 }
-
-     */

@@ -28,48 +28,42 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package org.kixi.myeventstore
 
 
-/*
-class EventStoreTest extends FunSuite {
-  test("add one event and receive same event to file event store") {
-    val store = new FileEventStore[Event[Identity]]("/data/")
+import akka.actor.{Props, ActorLogging, Actor, ActorRef}
+import eventstore.StreamEventAppeared
 
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
 
-    store.appendEventsToStream("TEST-1", 0, events)
+case class SubscribeMsg(subscriber: ActorRef, filter: Any => Boolean)
 
-    val stored = store.loadEventStream("TEST-1")
+class SynchronousEventHandler extends Actor with ActorLogging {
+  var eventSubscribers: List[ActorRef] = Nil
+  var filters: Map[ActorRef, Any => Boolean] = Map.empty[ActorRef, Any => Boolean]
 
-    assert(events === stored)
+  def receive = {
+    case m: SubscribeMsg => {
+      eventSubscribers = m.subscriber :: eventSubscribers
+      filters += (m.subscriber -> m.filter)
+    }
+    case e =>
+      for {
+        sub <- eventSubscribers
+        filter <- filters.get(sub) if filter(e)
+      } {
+        //    log.debug("Notifying actor: " + sub + " - Message "+e)
+        sub ! e
+      }
   }
-
-  test("add two events of same type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: AccountOpened(AccountId("2"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-2", 0, events)
-
-    val stored = store.loadEventStream("TEST-2")
-
-    assert(events === stored)
-  }
-
-  test("add two events of different type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) ::
-      MoneyDeposited(AccountId("1"), Money(100, CurrencyUnit("EUR")), new Money(100, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-3", 0, events)
-
-    val stored = store.loadEventStream("TEST-3")
-
-    assert(events === stored)
-  }
-
 }
 
-     */
+object GYEventStoreHandler {
+  def props(eventHandler: ActorRef) = Props(classOf[GYEventStoreHandler], eventHandler)
+}
+
+class GYEventStoreHandler(eventHandler: ActorRef) extends Actor with ActorLogging {
+  def receive = {
+    case msg: StreamEventAppeared =>
+      eventHandler ! JavaSerializer.readObject(msg.resolvedEvent.eventRecord.event.data.toArray)
+  }
+}

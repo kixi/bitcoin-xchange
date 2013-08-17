@@ -28,48 +28,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package eventstore
+package org.kixi.xc.core.common
 
-
-/*
-class EventStoreTest extends FunSuite {
-  test("add one event and receive same event to file event store") {
-    val store = new FileEventStore[Event[Identity]]("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-1", 0, events)
-
-    val stored = store.loadEventStream("TEST-1")
-
-    assert(events === stored)
+case class Money(amount: BigDecimal, currency: CurrencyUnit) extends Ordered[Money] {
+  def *(factor: BigDecimal) = {
+    Money(amount * factor, currency)
   }
 
-  test("add two events of same type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: AccountOpened(AccountId("2"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-2", 0, events)
-
-    val stored = store.loadEventStream("TEST-2")
-
-    assert(events === stored)
+  def +(that: Money) = {
+    Money(amount + that.amount, currency)
   }
 
-  test("add two events of different type and receive same events to file event store") {
-    val store = new FileEventStore("/data/")
-
-    val events = AccountOpened(AccountId("1"), CurrencyUnit("EUR"), Money(0, CurrencyUnit("EUR"))) ::
-      MoneyDeposited(AccountId("1"), Money(100, CurrencyUnit("EUR")), new Money(100, CurrencyUnit("EUR"))) :: Nil
-
-    store.appendEventsToStream("TEST-3", 0, events)
-
-    val stored = store.loadEventStream("TEST-3")
-
-    assert(events === stored)
+  def -(that: Money) = {
+    Money(amount - that.amount, currency)
   }
 
+  def unary_! = {
+    Money(0 - amount, currency)
+  }
+
+  override def compare(that: Money) = {
+    (this.amount - that.amount).setScale(0, BigDecimal.RoundingMode.UP).intValue()
+  }
 }
-
-     */
