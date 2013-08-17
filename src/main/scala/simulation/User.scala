@@ -40,6 +40,31 @@ import java.util.UUID
 import org.joda.time.DateTime
 import scala.util.Random
 import java.math.MathContext
+import scala._
+import domain.CurrencyUnit
+import domain.OrderId
+import domain.LimitOrder
+import domain.AccountId
+import domain.Money
+import domain.OpenAccount
+import domain.OrderBookId
+import domain.DepositMoney
+import domain.PlaceOrder
+import domain.TransactionId
+import domain.MoneyDeposited
+import domain.AccountOpened
+import domain.CurrencyUnit
+import domain.OrderId
+import domain.LimitOrder
+import domain.AccountId
+import domain.Money
+import domain.OpenAccount
+import domain.OrderBookId
+import domain.DepositMoney
+import domain.PlaceOrder
+import domain.TransactionId
+import domain.MoneyDeposited
+import domain.AccountOpened
 
 /**
  * Created with IntelliJ IDEA.
@@ -73,6 +98,12 @@ class User(commandBus: ActorRef, userId: Int) extends Actor {
     case StartSimulation =>
       commandBus ! OpenAccount(eurAcc, CurrencyUnit("EUR"))
       commandBus ! OpenAccount(btcAcc, CurrencyUnit("BTC"))
+ /*     commandBus ! DepositMoney(eurAcc, Money(10000, CurrencyUnit("EUR")))
+      commandBus ! DepositMoney(btcAcc, Money(100, CurrencyUnit("BTC")))
+
+      commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(),new DateTime(),CurrencyUnit("BTC"), 100, Money(BigDecimal(100).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Sell, eurAcc, btcAcc ))
+      commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(),new DateTime(),CurrencyUnit("BTC"), 100, Money(BigDecimal(100).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Buy, eurAcc, btcAcc ))
+*/
     case AccountOpened(accountId, _, _, _) if (accountId == eurAcc) =>
      commandBus ! DepositMoney(eurAcc, Money(10000, CurrencyUnit("EUR")))
     case AccountOpened(accountId, _, _, _) if (accountId == btcAcc) =>

@@ -31,7 +31,8 @@
 package eventstore
 
 
-import akka.actor.{ActorLogging, Actor, ActorRef}
+import akka.actor.{Props, ActorLogging, Actor, ActorRef}
+import myeventstore.JavaSerializer
 
 
 case class SubscribeMsg(subscriber: ActorRef, filter: Any => Boolean)
@@ -53,5 +54,15 @@ class SynchronousEventHandler extends Actor with ActorLogging {
     //    log.debug("Notifying actor: " + sub + " - Message "+e)
         sub ! e
       }
+  }
+}
+
+object GYEventStoreHandler {
+  def props(eventHandler: ActorRef) = Props(classOf[GYEventStoreHandler], eventHandler)
+}
+class GYEventStoreHandler(eventHandler: ActorRef) extends Actor with ActorLogging {
+   def receive = {
+    case msg: StreamEventAppeared =>
+      eventHandler ! JavaSerializer.readObject(msg.resolvedEvent.eventRecord.event.data.toArray)
   }
 }

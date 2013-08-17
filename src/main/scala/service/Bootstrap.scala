@@ -42,6 +42,7 @@ import domain.orderbook.OrderBookService
 import cqrs.{Identity, Event}
 import myeventstore.{FakeEventStoreBridgeActor, GYEventStoreBridgeActor}
 import eventstore.tcp.ConnectionActor
+import scala.concurrent.duration._
 
 object Service {
   val log = Logger("Console")
@@ -61,12 +62,15 @@ object Service {
 object ServiceEnvironment {
   val system = ActorSystem("bitcoin-xchange")//,  ConfigFactory.load.getConfig("bitcoin-xchange"))
   val handler = system.actorOf(Props(new SynchronousEventHandler()), "event-handler")
-  val eventStoreActor =  system.actorOf(Props(new ConnectionActor(Settings())), "event-store")
+  val gyHandler = system.actorOf(GYEventStoreHandler.props(handler))
+
+  val eventStoreActor =  system.actorOf(Props(new ConnectionActor(Settings(heartbeatTimeout=20 seconds))), "event-store")
+  eventStoreActor.tell(SubscribeTo(AllStreams),gyHandler)
  // val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
- val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor, handler)
+  val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor, handler)
   val bridgeFake = FakeEventStoreBridgeActor.props(handler)
 
-  val accountProcessor = system.actorOf(AccountService.props(bridgeGY, handler), "account-processor" )
+  val accountProcessor = system.actorOf(AccountService.props(bridgeGY), "account-processor" )
   val orderBookProcessor = system.actorOf(OrderBookService.props(bridgeGY, handler),  "orderbook-processor" )
   val commandBus = system.actorOf(Props(new CommandBus(eventStoreActor, accountProcessor, orderBookProcessor)), "command-bus")
   val accountView = system.actorOf(Props(new AccountProjection()), "account-projection")

@@ -70,7 +70,7 @@ object Console {
 
     val cons = System.console()
 
-    Thread.sleep(5000)
+    Thread.sleep(500)
 
     /*    for(cmd <- env.commands.get("createOrderBook")) cmd.execute(env, "BTCEUR EUR".split(" "))
         for(cmd <- env.commands.get("openAccount")) cmd.execute(env, "1-EUR EUR".split(" "))

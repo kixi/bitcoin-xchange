@@ -62,9 +62,9 @@ class AccountProcessor(eventStore: ActorRef) extends AggregateProcessor[AccountF
 }
 */
 object AccountService {
-  def props(bridge : Props, handler: ActorRef) = Props(classOf[AccountService], bridge, handler)
+  def props(bridge : Props) = Props(classOf[AccountService], bridge)
 }
-class AccountService(bridge: Props, handler: ActorRef) extends Actor with ActorLogging {
+class AccountService(bridge: Props) extends Actor with ActorLogging {
 
   def receive = {
     case cmd: AccountCommand => {
@@ -76,7 +76,7 @@ class AccountService(bridge: Props, handler: ActorRef) extends Actor with ActorL
   }
 
   def createActor(accountId : AccountId) = {
-    val actor = context.actorOf(AggregateActor.props(bridge, handler, AccountState(accountId)),"account-"+accountId.id)
+    val actor = context.actorOf(AggregateActor.props(bridge, AccountState(accountId)),"account-"+accountId.id)
     context.watch(actor)
     actor
   }
@@ -138,9 +138,9 @@ case class AccountState(accountId: AccountId, aggregate: Option[Account] = None)
 }
 
 object AggregateActor {
-  def props(bridge: Props, handler: ActorRef, state: AccountState) = Props(classOf[AggregateActor], bridge, handler, state)
+  def props(bridge: Props, state: AccountState) = Props(classOf[AggregateActor], bridge, state)
 }
-class AggregateActor(bridge: Props, eventHandler: ActorRef, var state: AccountState) extends Actor with ActorLogging {
+class AggregateActor(bridge: Props, var state: AccountState) extends Actor with ActorLogging {
 
   val bridgeActor = context.actorOf(bridge, "bridge-"+state.aggregateId)
 

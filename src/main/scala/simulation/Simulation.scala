@@ -83,41 +83,39 @@ object Simulator {
 
 }
 
-case class SimulationEnvironment(system: ActorSystem, commandBus: ActorRef, eventHandler: ActorRef, users : List[ActorRef])
+case class SimulationEnvironment(system: ActorSystem, commandBus: ActorRef, eventHandler: ActorRef, users: List[ActorRef])
 
 object SimulationEnvironment {
   def buildEnvironment = {
-    val system = ActorSystem("bitcoin-xchange")//, ConfigFactory.load.getConfig("bitcoin-xchange-client"))
-//    val remotePathCommandBus = "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
-//    val remotePathEventHandler = "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/event-handler"
+    val system = ActorSystem("bitcoin-xchange") //, ConfigFactory.load.getConfig("bitcoin-xchange-client"))
+    //    val remotePathCommandBus = "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
+    //    val remotePathEventHandler = "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/event-handler"
     val commandBus = ServiceEnvironment.commandBus
     val eventHandler = ServiceEnvironment.handler
-//    val commandBus = system.actorOf(Props(new LookupActor(remotePathCommandBus)), "commandbus-client")
-//    val eventHandler = system.actorOf(Props(new LookupActor(remotePathEventHandler)), "event-handler-client")
+    //    val commandBus = system.actorOf(Props(new LookupActor(remotePathCommandBus)), "commandbus-client")
+    //    val eventHandler = system.actorOf(Props(new LookupActor(remotePathEventHandler)), "event-handler-client")
 
-   Thread.sleep(100)
+    Thread.sleep(100)
 
     commandBus ! CreateOrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))
     Thread.sleep(100)
     val users =
-    for (userId <- 0 to 0) yield {
-      val user = system.actorOf(Props(new User(commandBus, userId)),"sim-user-"+userId)
-      val accBtcId = AccountId(userId+"-BTC")
-      val accEurId = AccountId(userId+"-EUR")
+      for (userId <- 0 to 9) yield {
+        val user = system.actorOf(Props(new User(commandBus, userId)), "sim-user-" + userId)
+        val accBtcId = AccountId(userId + "-BTC")
+        val accEurId = AccountId(userId + "-EUR")
 
-      eventHandler ! SubscribeMsg(user, (x) =>  x match {
-        case AccountOpened(accountId, _, _, _) if (accountId == accBtcId ) => true
-        case AccountOpened(accountId, _, _, _) if (accountId == accEurId) => true
-        case MoneyDeposited(accountId, _, _, _) if (accountId == accBtcId ) => true
-        case MoneyDeposited(accountId, _, _, _) if (accountId == accEurId) => true
+        eventHandler ! SubscribeMsg(user, (x) => x match {
+          case AccountOpened(accountId, _, _, _) if (accountId == accBtcId) => true
+          case AccountOpened(accountId, _, _, _) if (accountId == accEurId) => true
+          case MoneyDeposited(accountId, _, _, _) if (accountId == accBtcId) => true
+          case MoneyDeposited(accountId, _, _, _) if (accountId == accEurId) => true
 
-        case _ => false
-      } )
-      user
-    }
-
+          case _ => false
+        })
+        user
+      }
     SimulationEnvironment(system, commandBus, eventHandler, users.toList)
-
   }
 }
 

@@ -45,6 +45,7 @@ object Dependencies {
   val akkaAtmos = "com.typesafe.atmos" % "trace-akka-2.2.0_2.10" % "1.2.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.0.7"
 
+  val metrics = "com.yammer.metrics" % "metrics-core" % "2.1.2"
 
   val eventstore = "com.eventstore" %% "eventstore-client" % "0.1-SNAPSHOT"
   val jodaTime = "joda-time" % "joda-time" % "2.1"
@@ -53,6 +54,7 @@ object Dependencies {
   val xchangeService = Seq(
     scalaTest % "test",
     slf4s,
+    akkaAtmos,
     akkaActor,
     akkaRemote,
     akkaSlf4j,

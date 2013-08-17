@@ -110,8 +110,6 @@ class GYEventStoreBridgeActor(eventStore: ActorRef, eventHandler: ActorRef) exte
           new Event(UUID.randomUUID(), "testtype", ByteString(JavaSerializer.writeObject(evt)), streamMetadata)
         }
       eventStore ! AppendToStream(StreamId(streamId), AnyVersion, eventList)
-      //TODO must be done by EventStore!
-      events.foreach(eventHandler ! _)
     case LoadEventStream(streamId, boomerang) =>
       log.debug("Read events from store - stream id=" + streamId)
       eventStore ! ReadStreamEvents(StreamId(streamId), 0, Int.MaxValue, resolveLinkTos = false, ReadDirection.Forward)
