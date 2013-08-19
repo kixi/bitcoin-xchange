@@ -34,7 +34,9 @@ import com.weiglewilczek.slf4s.Logger
 import akka.actor._
 import scala.concurrent.duration._
 import org.joda.time.DateTime
-import org.kixi.xc.core.common._
+import org.kixi.xc.core.orderbook.domain._
+import org.kixi.xc.service.ServiceEnvironment
+import org.kixi.xc.core.orderbook.domain.OrderId
 import org.kixi.xc.core.orderbook.domain.CreateOrderBook
 import org.kixi.xc.core.common.Money
 import org.kixi.xc.core.account.domain.OpenAccount
@@ -42,19 +44,23 @@ import akka.actor.ActorIdentity
 import scala.Some
 import org.kixi.xc.core.account.domain.DepositMoney
 import akka.actor.Identify
+import org.kixi.myeventstore.SubscribeMsg
 import org.kixi.xc.core.common.CurrencyUnit
-import org.kixi.xc.core.common.LimitOrder
+import org.kixi.xc.core.orderbook.domain.LimitOrder
 import org.kixi.xc.core.account.domain.AccountId
 import org.kixi.xc.core.orderbook.domain.OrderBookId
 import org.kixi.xc.core.orderbook.domain.PlaceOrder
-import org.kixi.xc.core.common.TransactionId
-import org.kixi.xc.service.ServiceEnvironment
+import org.kixi.xc.core.account.domain.TransactionId
+import org.kixi.xc.projections.LoggingProjection
 
 object Console {
   val log = Logger("Console")
 
   def main(args: Array[String]) {
     log.info("Starting bitcoin-exchange console ...")
+
+    ServiceEnvironment.buildEnvironment()
+    ServiceEnvironment.handler ! SubscribeMsg(ServiceEnvironment.system.actorOf(Props(new LoggingProjection()), "logging-projection"), (x) => true)
 
     val env = ConsoleEnvironment.buildEnvironment
 

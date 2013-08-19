@@ -131,11 +131,14 @@ case class Account(
     if (e.balance.amount < 0) {
       log.error("" + this + " balance is smaller than 0!!!")
     }
-    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse, requestedWithdrawals = requestedWithdrawals + (e.transactionId -> e.amount), balance = e.balance)
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
+      requestedWithdrawals = requestedWithdrawals + (e.transactionId -> e.amount),
+      balance = e.balance)
   }
 
   def when(e: MoneyWithdrawalConfirmed): Account = {
-    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse, requestedWithdrawals = requestedWithdrawals - e.transactionId)
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
+      requestedWithdrawals = requestedWithdrawals - e.transactionId)
   }
 
 }

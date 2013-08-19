@@ -28,23 +28,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.kixi.xc.core.common
+package org.kixi.xc.core.orderbook.domain
 
 import org.joda.time.DateTime
 import java.util.UUID
 import org.kixi.cqrslib.aggregate.Identity
 import org.kixi.xc.core.account.domain.AccountId
+import org.kixi.xc.core.common.{Money, CurrencyUnit}
+import org.kixi.xc.core.common.Quantity
 
-
-case class TransactionId(id: String = UUID.randomUUID().toString) extends Identity
-
-case class OrderId(id: String = UUID.randomUUID().toString) extends Identity
 
 trait Side
 
+case object Sell extends Side
+
 case object Buy extends Side
 
-case object Sell extends Side
+case class OrderId(id: String = UUID.randomUUID().toString) extends Identity
 
 trait Order {
   def id: OrderId

@@ -33,20 +33,17 @@ package org.kixi.xc.domain.orderbook
 import org.scalatest.FunSuite
 import org.joda.time.DateTime
 import org.kixi.xc.core.orderbook.domain._
-import org.kixi.xc.core.common._
 import org.kixi.xc.core.orderbook.domain.OrderAdjusted
 import org.kixi.xc.core.orderbook.domain.OrderBook
 import org.kixi.xc.core.orderbook.domain.OrderBookCreated
 import org.kixi.xc.core.common.CurrencyUnit
-import org.kixi.xc.core.common.OrderId
 import org.kixi.xc.core.orderbook.domain.OrderPlaced
-import org.kixi.xc.core.common.LimitOrder
 import org.kixi.xc.core.orderbook.domain.OrderQueued
 import org.kixi.xc.core.orderbook.domain.OrdersExecuted
 import org.kixi.xc.core.common.Money
 import org.kixi.xc.core.orderbook.domain.OrderPlacementPrepared
 import org.kixi.xc.core.orderbook.domain.OrderBookId
-import org.kixi.xc.core.account.domain.AccountId
+import org.kixi.xc.core.account.domain.{TransactionId, AccountId}
 import org.kixi.cqrslib.aggregate.SpecTest
 
 

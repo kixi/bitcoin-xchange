@@ -92,12 +92,12 @@ class EventStoreActor[+E](eventHandler: ActorRef, store: EventStore[E]) extends 
 }
 
 object GYEventStoreBridgeActor {
-  def props(eventStore: ActorRef, eventHandler: ActorRef): Props = {
-    Props(classOf[GYEventStoreBridgeActor], eventStore, eventHandler)
+  def props(eventStore: ActorRef): Props = {
+    Props(classOf[GYEventStoreBridgeActor], eventStore)
   }
 }
 
-class GYEventStoreBridgeActor(eventStore: ActorRef, eventHandler: ActorRef) extends Actor with ActorLogging {
+class GYEventStoreBridgeActor(eventStore: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
     case msg@AppendEventsToStream(streamId, version, events, boomerang) =>

@@ -64,6 +64,10 @@ object GYEventStoreHandler {
 class GYEventStoreHandler(eventHandler: ActorRef) extends Actor with ActorLogging {
   def receive = {
     case msg: StreamEventAppeared =>
-      eventHandler ! JavaSerializer.readObject(msg.resolvedEvent.eventRecord.event.data.toArray)
+      try {
+        eventHandler ! JavaSerializer.readObject(msg.resolvedEvent.eventRecord.event.data.toArray)
+      } catch {
+        case e: Throwable => log.error(s"Unable to process message $msg", e)
+      }
   }
 }

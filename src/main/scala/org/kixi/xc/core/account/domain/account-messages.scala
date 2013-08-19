@@ -32,7 +32,7 @@ package org.kixi.xc.core.account.domain
 
 import org.joda.time.DateTime
 import org.kixi.cqrslib.aggregate.{Event, Command}
-import org.kixi.xc.core.common.{TransactionId, Money, CurrencyUnit}
+import org.kixi.xc.core.common.{Money, CurrencyUnit}
 
 trait AccountCommand extends Command[AccountId]
 

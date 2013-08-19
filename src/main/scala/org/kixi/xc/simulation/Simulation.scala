@@ -59,6 +59,8 @@ object Simulator {
     val cons = System.console()
 
     Thread.sleep(100)
+    ServiceEnvironment.handler ! SubscribeMsg(ServiceEnvironment.counter, (x) => true)
+
 
     for (user <- env.users) {
       user ! StartSimulation

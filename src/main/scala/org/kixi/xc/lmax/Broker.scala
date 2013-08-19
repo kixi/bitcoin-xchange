@@ -34,11 +34,9 @@ import scala.collection._
 import org.joda.time.DateTime
 import org.kixi.xc.core.orderbook.domain._
 import org.kixi.xc.core.account.domain._
-import org.kixi.xc.core.common._
 import org.kixi.xc.core.orderbook.domain.OrderBook
 import org.kixi.xc.core.account.domain.Account
 import org.kixi.xc.core.common.CurrencyUnit
-import org.kixi.xc.core.common.OrderId
 import org.kixi.xc.core.orderbook.domain.CreateOrderBook
 import org.kixi.xc.core.account.domain.AccountId
 import org.kixi.xc.core.common.Money
@@ -47,7 +45,6 @@ import org.kixi.xc.core.account.domain.OpenAccount
 import scala.Some
 import org.kixi.xc.core.account.domain.DepositMoney
 import org.kixi.xc.core.orderbook.domain.PlaceOrder
-import org.kixi.xc.core.common.TransactionId
 
 /**
  * User: guenter

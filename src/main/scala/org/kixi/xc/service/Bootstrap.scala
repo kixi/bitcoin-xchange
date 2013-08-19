@@ -66,7 +66,7 @@ object ServiceEnvironment {
   val eventStoreActor = system.actorOf(Props(new ConnectionActor(Settings(heartbeatTimeout = 20.seconds))), "event-store")
   eventStoreActor.tell(SubscribeTo(AllStreams), gyHandler)
   // val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
-  val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor, handler)
+  val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor)
   val bridgeFake = FakeEventStoreBridgeActor.props(handler)
 
   val accountProcessor = system.actorOf(AccountService.props(bridgeFake), "account-processor")
@@ -75,11 +75,8 @@ object ServiceEnvironment {
   val accountView = system.actorOf(Props(new AccountProjection()), "account-projection")
   val counter = system.actorOf(Props(new OrderCounterProjection()), "order-counter-projection")
 
-
   def buildEnvironment() {
     //   handler ! SubscribeMsg(accountView, (x) => true)
-    //   handler ! SubscribeMsg(system.actorOf(Props(new LoggingProjection()), "logging-projection"), (x) => true)
-    handler ! SubscribeMsg(counter, (x) => true)
     handler ! SubscribeMsg(system.actorOf(Props(new PlaceOrderSagaRouter(commandBus)), "place-order-saga-router"), (x) => true)
     handler ! SubscribeMsg(system.actorOf(Props(new ProcessPaymentsSagaRouter(commandBus)), "process-payments-saga-router"), (x) => true)
   }

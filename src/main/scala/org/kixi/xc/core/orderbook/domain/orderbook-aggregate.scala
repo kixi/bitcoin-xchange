@@ -32,11 +32,11 @@ package org.kixi.xc.core.orderbook.domain
 
 import org.kixi.cqrslib.aggregate.{AggregateRoot, AggregateFactory, Identity}
 import org.kixi.xc.core.common._
-import org.kixi.xc.core.common.OrderId
 import scala.Some
 import org.kixi.xc.core.common.UnhandledEventException
 import org.kixi.xc.core.common.CurrencyUnit
 import org.kixi.xc.core.common.OrderExpiredException
+import org.kixi.xc.core.account.domain.TransactionId
 
 case class OrderBookId(id: String) extends Identity
 
@@ -73,7 +73,8 @@ case class OrderBook(
   }
 
   def placeOrder(transactionId: TransactionId, order: LimitOrder): OrderBook = {
-    applyEvent(new OrderPlaced(id, transactionId, order))
+    applyEvent(new OrderPlaced(id, transactionId, order)).
+      makeOrder(order)
   }
 
   def prepareOrderPlacement(orderId: OrderId, transactionId: TransactionId, order: LimitOrder) = {
@@ -186,8 +187,8 @@ case class OrderBook(
     case e: OrdersExecuted => when(e)
     case e: OrderExpired => when(e)
     case event: OrderPlaced => when(event)
-    case event: OrderPlacementPrepared => when(event)
-    case event: OrderPlacementConfirmed => when(event)
+    //    case event: OrderPlacementPrepared => when(event)
+    //    case event: OrderPlacementConfirmed => when(event)
     case event => throw new UnhandledEventException("Aggregate OrderBook does not handle event " + event)
   }
 
@@ -197,14 +198,15 @@ case class OrderBook(
     copy(event :: uncommittedEventsReverse)
   }
 
-  def when(event: OrderPlacementPrepared) = {
-    copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders + (event.orderId -> event.order))
-  }
+  /*
+    def when(event: OrderPlacementPrepared) = {
+      copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders + (event.orderId -> event.order))
+    }
 
-  def when(event: OrderPlacementConfirmed) = {
-    copy(event :: uncommittedEventsReverse)
-  }
-
+    def when(event: OrderPlacementConfirmed) = {
+      copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders - event.orderId)
+    }
+  */
 
   def when(event: OrderQueued) = {
     if (event.order.buy)

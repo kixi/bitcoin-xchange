@@ -28,17 +28,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package domain
+package org.kixi.xc.core.account.domain
 
 import java.util.UUID
-import cqrs.Identity
+import org.kixi.cqrslib.aggregate.Identity
 
-
-case class OrderBookId(id: String) extends Identity
-
-case class AccountId(id: String = UUID.randomUUID().toString) extends Identity
-
+/**
+ * User: guenter
+ * Date: 17.08.13
+ * Time: 23:33
+ */
 case class TransactionId(id: String = UUID.randomUUID().toString) extends Identity
-
-case class OrderId(id: String = UUID.randomUUID().toString) extends Identity
-

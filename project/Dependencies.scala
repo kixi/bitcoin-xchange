@@ -62,6 +62,7 @@ object Dependencies {
     jodaTime,
     jodaConvert,
     logback,
-    eventstore
+    eventstore,
+    metrics
   )
 }

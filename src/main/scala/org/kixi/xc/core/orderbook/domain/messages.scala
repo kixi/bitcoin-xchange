@@ -34,9 +34,7 @@ import org.joda.time.DateTime
 import org.kixi.cqrslib.aggregate.{Event, Command}
 import org.kixi.xc.core.common._
 import org.kixi.xc.core.common.CurrencyUnit
-import org.kixi.xc.core.common.OrderId
-import org.kixi.xc.core.common.LimitOrder
-import org.kixi.xc.core.common.TransactionId
+import org.kixi.xc.core.account.domain.TransactionId
 
 
 trait OrderBookCommand extends Command[OrderBookId]

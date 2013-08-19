@@ -33,9 +33,11 @@ package org.kixi.xc.simulation
 import akka.actor.{ActorRef, Actor}
 import org.joda.time.DateTime
 import scala._
-import org.kixi.xc.core.common._
+import org.kixi.xc.core.account.domain._
+import org.kixi.xc.core.orderbook.domain._
 import org.kixi.xc.core.common.CurrencyUnit
-import org.kixi.xc.core.common.LimitOrder
+import org.kixi.xc.core.orderbook.domain.OrderId
+import org.kixi.xc.core.orderbook.domain.LimitOrder
 import org.kixi.xc.core.account.domain.AccountId
 import org.kixi.xc.core.common.Money
 import org.kixi.xc.core.account.domain.OpenAccount
