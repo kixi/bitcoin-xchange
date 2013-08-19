@@ -37,7 +37,7 @@ import eventstore.StreamEventAppeared
 
 case class SubscribeMsg(subscriber: ActorRef, filter: Any => Boolean)
 
-class SynchronousEventHandler extends Actor with ActorLogging {
+class AkkaEventHandler extends Actor with ActorLogging {
   var eventSubscribers: List[ActorRef] = Nil
   var filters: Map[ActorRef, Any => Boolean] = Map.empty[ActorRef, Any => Boolean]
 
@@ -67,7 +67,7 @@ class GYEventStoreHandler(eventHandler: ActorRef) extends Actor with ActorLoggin
       try {
         eventHandler ! JavaSerializer.readObject(msg.resolvedEvent.eventRecord.event.data.toArray)
       } catch {
-        case e: Throwable => log.error(s"Unable to process message $msg", e)
+        case e: Throwable => log.warning(s"Unable to process message $msg", e)
       }
   }
 }
