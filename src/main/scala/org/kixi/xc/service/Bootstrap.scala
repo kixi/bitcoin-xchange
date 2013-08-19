@@ -60,7 +60,7 @@ object Service {
 object ServiceEnvironment {
   val system = ActorSystem("bitcoin-xchange")
   //,  ConfigFactory.load.getConfig("bitcoin-xchange"))
-  val handler = system.actorOf(Props(new SynchronousEventHandler()), "event-handler")
+  val handler = system.actorOf(Props(new AkkaEventHandler()), "event-handler")
   val gyHandler = system.actorOf(GYEventStoreHandler.props(handler))
 
   val eventStoreActor = system.actorOf(Props(new ConnectionActor(Settings(heartbeatTimeout = 20.seconds))), "event-store")

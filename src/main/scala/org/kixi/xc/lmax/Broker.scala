@@ -85,7 +85,7 @@ object Broker {
 object LMAX extends App {
   val start = System.currentTimeMillis
   Broker.process(CreateOrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR")))
-  for (count <- 0 to 300000) {
+  for (count <- 0 to 100000) {
     Broker.process(OpenAccount(AccountId(s"$count-EUR"), CurrencyUnit("EUR")))
     Broker.process(DepositMoney(AccountId(s"$count-EUR"), Money(10000, CurrencyUnit("EUR"))))
 
@@ -93,7 +93,7 @@ object LMAX extends App {
     Broker.process(DepositMoney(AccountId(s"$count-BTC"), Money(100, CurrencyUnit("BTC"))))
   }
 
-  for (count <- 0 to 300000) {
+  for (count <- 0 to 100000) {
     Broker.process(PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), 100, Money(100, CurrencyUnit("EUR")), Buy, AccountId(s"$count-EUR"), AccountId(s"$count-BTC"))))
     Broker.process(PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), 100, Money(100, CurrencyUnit("EUR")), Sell, AccountId(s"$count-EUR"), AccountId(s"$count-BTC"))))
   }

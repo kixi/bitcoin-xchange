@@ -73,8 +73,7 @@ case class OrderBook(
   }
 
   def placeOrder(transactionId: TransactionId, order: LimitOrder): OrderBook = {
-    applyEvent(new OrderPlaced(id, transactionId, order)).
-      makeOrder(order)
+    applyEvent(new OrderPlaced(id, transactionId, order))
   }
 
   def prepareOrderPlacement(orderId: OrderId, transactionId: TransactionId, order: LimitOrder) = {
@@ -187,8 +186,8 @@ case class OrderBook(
     case e: OrdersExecuted => when(e)
     case e: OrderExpired => when(e)
     case event: OrderPlaced => when(event)
-    //    case event: OrderPlacementPrepared => when(event)
-    //    case event: OrderPlacementConfirmed => when(event)
+    case event: OrderPlacementPrepared => when(event)
+    case event: OrderPlacementConfirmed => when(event)
     case event => throw new UnhandledEventException("Aggregate OrderBook does not handle event " + event)
   }
 
@@ -198,15 +197,13 @@ case class OrderBook(
     copy(event :: uncommittedEventsReverse)
   }
 
-  /*
-    def when(event: OrderPlacementPrepared) = {
-      copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders + (event.orderId -> event.order))
-    }
+  def when(event: OrderPlacementPrepared) = {
+    copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders + (event.orderId -> event.order))
+  }
 
-    def when(event: OrderPlacementConfirmed) = {
-      copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders - event.orderId)
-    }
-  */
+  def when(event: OrderPlacementConfirmed) = {
+    copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders - event.orderId)
+  }
 
   def when(event: OrderQueued) = {
     if (event.order.buy)
