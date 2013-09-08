@@ -28,19 +28,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-import sbt._
-import Keys._
+package org.kixi.cqrslib.aggregate
 
-object build extends Build {
-  lazy val basicSettings = Seq(
-    name := "xchange",
-    version := "0.1-SNAPSHOT",
-    organization := "org.kixi",
-    scalaVersion := "2.10.2",
-    scalacOptions := Seq("-encoding", "UTF-8", "-unchecked", "-deprecation"),
-    parallelExecution in Compile := true,
-    libraryDependencies ++= Dependencies.xchangeService
-  )
+import org.scalatest.FunSuite
+import org.joda.time.DateTime
 
-  lazy val root = Project("xchange", file("."), settings = basicSettings ++ Defaults.defaultSettings)
+/**
+ * User: guenter
+ * Date: 19.08.13
+ * Time: 22:31
+ */
+class AggregateTest extends FunSuite {
+
+}
+
+case class TestId(id: String) extends Identity
+
+case class TestEvent(id: TestId, value: Int, timestamp: DateTime = new DateTime()) extends Event[TestId]
+
+case class TestCommand(id: TestId, timestamp: DateTime = new DateTime()) extends Command[TestId]
+
+case class TestAggregate extends AggregateRoot[TestAggregate, TestEvent, TestId] {
+  def applyEvent(e: TestEvent): TestAggregate = ???
+
+  def uncommittedEventsReverse: List[TestEvent] = ???
+
+  def version: Int = ???
+
+  def loadedVersion(version: Int): TestAggregate = ???
+
+  def markCommitted: TestAggregate = ???
 }

@@ -36,9 +36,10 @@ import com.typesafe.config.Config
 import java.util.UUID
 import akka.util.ByteString
 import eventstore._
-import eventstore.ReadStreamEventsCompleted
 import eventstore.ReadStreamEvents
-import eventstore.StreamId
+import eventstore.EventStream.Id
+import eventstore.ExpectedVersion.Any
+import scala.Any
 
 case class EventStream[E](events: List[E], streamVersion: StreamRevision)
 
@@ -105,25 +106,25 @@ class GYEventStoreBridgeActor(eventStore: ActorRef) extends Actor with ActorLogg
       val eventList =
         for (evt <- events) yield {
           val streamMetadata = ByteString(evt.getClass.getSimpleName)
-          new Event(UUID.randomUUID(), "testtype", ByteString(JavaSerializer.writeObject(evt)), streamMetadata)
+          EventData(UUID.randomUUID(), "testtype", ByteString(JavaSerializer.writeObject(evt)), streamMetadata)
         }
-      eventStore ! AppendToStream(StreamId(streamId), AnyVersion, eventList)
+      eventStore ! AppendToStream(Id(streamId), Any, eventList)
     case LoadEventStream(streamId, boomerang) =>
       log.debug("Read events from store - stream id=" + streamId)
-      eventStore ! ReadStreamEvents(StreamId(streamId), 0, Int.MaxValue, resolveLinkTos = false, ReadDirection.Forward)
+      eventStore ! ReadStreamEvents(Id(streamId), EventNumber.First, MaxBatchSize, ReadDirection.Forward)
 
-    case ReadStreamEventsCompleted(events, ReadStreamResult.Success, _, _, _, _, _) =>
+    case ReadStreamEventsSucceed(events, _, _, _, _, _) =>
       if (!events.isEmpty) {
-        val streamId = events.head.eventRecord.streamId
+        val streamId = events.head.streamId
         val evts =
           (for (e <- events) yield {
-            val eventData = e.eventRecord.event.data
-            val bytes = eventData.toArray
+            val eventData = e.data
+            val bytes = eventData.data.toArray
             JavaSerializer.readObject(bytes)
           }).toList
         context.parent ! EventsLoaded(EventStream(evts, StreamRevision(evts.size)), None)
       }
-    case msg@ReadStreamEventsCompleted(events, ReadStreamResult.NoStream, _, _, _, _, _) =>
+    case msg@ReadStreamEventsFailed(events, _, _) =>
       context.parent ! EventsLoaded(EventStream(Nil, StreamRevision(0)), None)
     case msg: AppendToStreamSucceed =>
       context.parent ! "committed"

@@ -32,7 +32,7 @@ import sbt._
 
 object Dependencies {
   // versions
-  val akkaVersion = "2.2.0"
+  val akkaVersion = "2.2.1"
 
   // libraries
   val scalaTest = "org.scalatest" %% "scalatest" % "1.9.1"
@@ -47,14 +47,15 @@ object Dependencies {
 
   val metrics = "com.yammer.metrics" % "metrics-core" % "2.1.2"
 
-  val eventstore = "com.eventstore" %% "eventstore-client" % "0.1-SNAPSHOT"
+  val eventstoreCustom = "com.eventstore" %% "eventstore-client" % "0.1-SNAPSHOT"
+
+  val eventstoreNew = "com.geteventstore" %% "main" % "0.1-SNAPSHOT"
   val jodaTime = "joda-time" % "joda-time" % "2.1"
   val jodaConvert = "org.joda" % "joda-convert" % "1.2"
 
   val xchangeService = Seq(
     scalaTest % "test",
     slf4s,
-    akkaAtmos,
     akkaActor,
     akkaRemote,
     akkaSlf4j,
@@ -62,7 +63,7 @@ object Dependencies {
     jodaTime,
     jodaConvert,
     logback,
-    eventstore,
+    eventstoreNew,
     metrics
   )
 }

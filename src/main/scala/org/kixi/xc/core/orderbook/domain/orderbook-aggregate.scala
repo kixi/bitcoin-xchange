@@ -181,10 +181,10 @@ case class OrderBook(
   }
 
   override def applyEvent(e: OrderBookEvent): OrderBook = e match {
-    case e: OrderQueued => when(e)
-    case e: OrderAdjusted => when(e)
-    case e: OrdersExecuted => when(e)
-    case e: OrderExpired => when(e)
+    case event: OrderQueued => when(event)
+    case event: OrderAdjusted => when(event)
+    case event: OrdersExecuted => when(event)
+    case event: OrderExpired => when(event)
     case event: OrderPlaced => when(event)
     case event: OrderPlacementPrepared => when(event)
     case event: OrderPlacementConfirmed => when(event)

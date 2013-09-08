@@ -91,7 +91,7 @@ object SimulationEnvironment {
     Thread.sleep(100)
     val users =
       for (userId <- 0 to 9) yield {
-        val user = system.actorOf(Props(new User(commandBus, userId)), "sim-user-" + userId)
+        val user = system.actorOf(Props(classOf[User], commandBus, userId), "sim-user-" + userId)
         val accBtcId = AccountId(userId + "-BTC")
         val accEurId = AccountId(userId + "-EUR")
 

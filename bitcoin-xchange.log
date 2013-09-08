@@ -1,0 +1,9 @@
+2013-09-06 14:32:29,341 INFO [bitcoin-xchange-akka.actor.default-dispatcher-3] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2013-09-06 14:32:29,732 INFO [bitcoin-xchange-akka.actor.default-dispatcher-6] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2013-09-06 14:36:29,678 INFO [bitcoin-xchange-akka.actor.default-dispatcher-2] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2013-09-06 14:36:30,057 INFO [bitcoin-xchange-akka.actor.default-dispatcher-7] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2013-09-06 14:40:56,972 INFO [bitcoin-xchange-akka.actor.default-dispatcher-2] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2013-09-06 14:40:58,236 INFO [bitcoin-xchange-akka.actor.default-dispatcher-6] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2013-09-06 14:41:20,876 ERROR [bitcoin-xchange-akka.actor.default-dispatcher-13] e.t.ConnectionActor [Slf4jLogger.scala:65] no heartbeat within 20 seconds
+2013-09-06 14:42:44,030 INFO [bitcoin-xchange-akka.actor.default-dispatcher-3] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2013-09-06 14:42:44,423 INFO [bitcoin-xchange-akka.actor.default-dispatcher-3] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started

@@ -41,6 +41,8 @@ import org.kixi.xc.core.orderbook.appservice.OrderBookService
 import org.kixi.myeventstore._
 import org.kixi.xc.projections.{OrderCounterProjection, AccountProjection}
 import org.kixi.xc.core.sagas.{ProcessPaymentsSagaRouter, PlaceOrderSagaRouter}
+import eventstore.EventStream.All
+import java.net.InetSocketAddress
 
 object Service {
   val log = Logger("Console")
@@ -60,25 +62,27 @@ object Service {
 object ServiceEnvironment {
   val system = ActorSystem("bitcoin-xchange")
   //,  ConfigFactory.load.getConfig("bitcoin-xchange"))
-  val handler = system.actorOf(Props(new AkkaEventHandler()), "event-handler")
+  val handler = system.actorOf(Props(classOf[AkkaEventHandler]), "event-handler")
   val gyHandler = system.actorOf(GYEventStoreHandler.props(handler))
 
-  val eventStoreActor = system.actorOf(Props(new ConnectionActor(Settings(heartbeatTimeout = 20.seconds))), "event-store")
-  eventStoreActor.tell(SubscribeTo(AllStreams), gyHandler)
+  val eventStoreActor = system.actorOf(Props(classOf[ConnectionActor], Settings(
+    address = new InetSocketAddress("192.168.56.1", 1113),
+    heartbeatTimeout = 20.seconds)), "event-store")
+  eventStoreActor.tell(SubscribeTo(All), gyHandler)
   // val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
   val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor)
   val bridgeFake = FakeEventStoreBridgeActor.props(handler)
 
   val accountProcessor = system.actorOf(AccountService.props(bridgeFake), "account-processor")
   val orderBookProcessor = system.actorOf(OrderBookService.props(bridgeFake, handler), "orderbook-processor")
-  val commandBus = system.actorOf(Props(new CommandBus(eventStoreActor, accountProcessor, orderBookProcessor)), "command-bus")
-  val accountView = system.actorOf(Props(new AccountProjection()), "account-projection")
-  val counter = system.actorOf(Props(new OrderCounterProjection()), "order-counter-projection")
+  val commandBus = system.actorOf(Props(classOf[CommandBus], eventStoreActor, accountProcessor, orderBookProcessor), "command-bus")
+  val accountView = system.actorOf(Props(classOf[AccountProjection]), "account-projection")
+  val counter = system.actorOf(Props(classOf[OrderCounterProjection]), "order-counter-projection")
 
   def buildEnvironment() {
     //   handler ! SubscribeMsg(accountView, (x) => true)
-    handler ! SubscribeMsg(system.actorOf(Props(new PlaceOrderSagaRouter(commandBus)), "place-order-saga-router"), (x) => true)
-    handler ! SubscribeMsg(system.actorOf(Props(new ProcessPaymentsSagaRouter(commandBus)), "process-payments-saga-router"), (x) => true)
+    handler ! SubscribeMsg(system.actorOf(Props(classOf[PlaceOrderSagaRouter], commandBus), "place-order-saga-router"), (x) => true)
+    handler ! SubscribeMsg(system.actorOf(Props(classOf[ProcessPaymentsSagaRouter], commandBus), "process-payments-saga-router"), (x) => true)
   }
 }
 
