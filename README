@@ -1,5 +1,5 @@
 Proof of concept for a (Bitcoin) exchange software based on CQRS and Event Sourcing.
 Initial goal was to get familiar with CQRS, Scala, Akka and Event Stores.
-The following driver is used to communicate with the Event Store (http://geteventstore.com)
+The following client API is used to communicate with the Event Store (http://geteventstore.com):
 https://github.com/EventStore/eventstorejvmclient
 
