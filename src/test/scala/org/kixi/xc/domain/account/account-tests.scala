@@ -109,7 +109,7 @@ class AccountTt extends FunSuite {
 
       .requestMoneyWithdrawal(TransactionId("1"), Money(100, CurrencyUnit("EUR")))
 
-    assert(account.uncommittedEventsReverse.head === MoneyWithdrawalRequested(AccountId("1"), TransactionId("1"), Money(100, CurrencyUnit("EUR")), Money(0, CurrencyUnit("EUR"))))
+    assert(account.uncommittedEventsReverse.head.hasSameContentAs(MoneyWithdrawalRequested(AccountId("1"), TransactionId("1"), Money(100, CurrencyUnit("EUR")), Money(0, CurrencyUnit("EUR")))))
   }
 
   test("request withdrawal over limit") {
@@ -128,7 +128,7 @@ class AccountTt extends FunSuite {
       .markCommitted
       .confirmMoneyWithdrawal(TransactionId("1"))
 
-    assert(account.uncommittedEventsReverse.head === MoneyWithdrawalConfirmed(AccountId("1"), TransactionId("1")))
+    assert(account.uncommittedEventsReverse.head.hasSameContentAs(MoneyWithdrawalConfirmed(AccountId("1"), TransactionId("1"))))
   }
 
   test("confirm withdrawal - cannot confirm  same withdrawal twice") {

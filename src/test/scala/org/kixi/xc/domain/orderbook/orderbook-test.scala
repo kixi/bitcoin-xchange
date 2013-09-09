@@ -750,7 +750,7 @@ class OrderBook_T0 extends FunSuite {
       .markCommitted
       .placeOrder(TransactionId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))
 
-    assert(book.uncommittedEventsReverse.head === OrderPlaced(OrderBookId("EURBTC"), TransactionId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1"))))
+    assert(book.uncommittedEventsReverse.head.hasSameContentAs(OrderPlaced(OrderBookId("EURBTC"), TransactionId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))))
   }
 
   test("prepare an order - ok") {
@@ -758,7 +758,7 @@ class OrderBook_T0 extends FunSuite {
       .markCommitted
       .prepareOrderPlacement(OrderId("1"), TransactionId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))
 
-    assert(book.uncommittedEventsReverse.head === OrderPlacementPrepared(OrderBookId("EURBTC"), TransactionId("1"), OrderId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1"))))
+    assert(book.uncommittedEventsReverse.head.hasSameContentAs(OrderPlacementPrepared(OrderBookId("EURBTC"), TransactionId("1"), OrderId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))))
   }
 
   /*
