@@ -44,7 +44,9 @@ class AggregateTest extends FunSuite {
 
 case class TestId(id: String) extends Identity
 
-case class TestEvent(id: TestId, value: Int, timestamp: DateTime = new DateTime()) extends Event[TestId]
+case class TestEvent(id: TestId, value: Int, timestamp: DateTime = new DateTime()) extends Event[TestId] {
+  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
+}
 
 case class TestCommand(id: TestId, timestamp: DateTime = new DateTime()) extends Command[TestId]
 

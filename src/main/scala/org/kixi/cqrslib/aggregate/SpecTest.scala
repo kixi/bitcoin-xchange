@@ -52,7 +52,7 @@ trait SpecTest[AR <: AggregateRoot[AR, E, I], ARF <: AggregateFactory[AR, E, I],
     if (!eventList.isEmpty) {
       var expectedEvents = eventList
       for (generatedEvent <- aggregate.uncommittedEvents) {
-        if (!expectedEvents.isEmpty && generatedEvent != expectedEvents.head) {
+        if (!expectedEvents.isEmpty && !generatedEvent.hasSameContentAs(expectedEvents.head)) {
           assert(assertion = false, "Expected event does not equal generated event! expected = " + expectedEvents.head + " generated = " + generatedEvent)
         }
         if (expectedEvents.isEmpty) {
@@ -66,7 +66,7 @@ trait SpecTest[AR <: AggregateRoot[AR, E, I], ARF <: AggregateFactory[AR, E, I],
     if (!aggregate.uncommittedEvents.isEmpty) {
       var generatedEvents = aggregate.uncommittedEvents
       for (expectedEvent <- eventList) {
-        if (!generatedEvents.isEmpty && expectedEvent != generatedEvents.head) {
+        if (!generatedEvents.isEmpty && !expectedEvent.hasSameContentAs(generatedEvents.head)) {
           assert(assertion = false, "Expected event does not equal generated event! \nexpected = " + expectedEvent + "\ngenerated = " + generatedEvents.head)
         }
         if (generatedEvents.isEmpty) {

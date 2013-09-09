@@ -44,7 +44,9 @@ trait Message[+A <: Identity] extends Serializable {
 
 trait Command[+A <: Identity] extends Message[A]
 
-trait Event[+A <: Identity] extends Message[A]
+trait Event[+A <: Identity] extends Message[A] {
+  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean
+}
 
 trait EventSourced[ES <: EventSourced[ES, E, I], E <: Event[I], I <: Identity] {
   def applyEvent(e: E): ES
