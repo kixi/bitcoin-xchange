@@ -28,7 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.kixi.xc.lmax
+package org.kixi.xc.singlethread
 
 import scala.collection._
 import org.joda.time.DateTime
@@ -82,7 +82,7 @@ object Broker {
 
 }
 
-object LMAX extends App {
+object SingleThread extends App {
   val start = System.currentTimeMillis
   Broker.process(CreateOrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR")))
   for (count <- 0 to 100000) {
