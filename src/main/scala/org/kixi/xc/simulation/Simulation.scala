@@ -96,10 +96,10 @@ object SimulationEnvironment {
         val accEurId = AccountId(userId + "-EUR")
 
         eventHandler ! SubscribeMsg(user, (x) => x match {
-          case AccountOpened(accountId, _, _, _) if accountId == accBtcId => true
-          case AccountOpened(accountId, _, _, _) if accountId == accEurId => true
-          case MoneyDeposited(accountId, _, _, _) if accountId == accBtcId => true
-          case MoneyDeposited(accountId, _, _, _) if accountId == accEurId => true
+          case AccountOpened(accountId, _, _) if accountId == accBtcId => true
+          case AccountOpened(accountId, _, _) if accountId == accEurId => true
+          case MoneyDeposited(accountId, _, _) if accountId == accBtcId => true
+          case MoneyDeposited(accountId, _, _) if accountId == accEurId => true
 
           case _ => false
         })

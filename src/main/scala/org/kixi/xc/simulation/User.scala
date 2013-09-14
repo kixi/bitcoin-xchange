@@ -82,16 +82,16 @@ class User(commandBus: ActorRef, userId: Int) extends Actor {
          commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(),new DateTime(),CurrencyUnit("BTC"), 100, Money(BigDecimal(100).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Sell, eurAcc, btcAcc ))
          commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(),new DateTime(),CurrencyUnit("BTC"), 100, Money(BigDecimal(100).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Buy, eurAcc, btcAcc ))
    */
-    case AccountOpened(accountId, _, _, _) if accountId == eurAcc =>
+    case AccountOpened(accountId, _, _) if accountId == eurAcc =>
       commandBus ! DepositMoney(eurAcc, Money(10000, CurrencyUnit("EUR")))
-    case AccountOpened(accountId, _, _, _) if accountId == btcAcc =>
+    case AccountOpened(accountId, _, _) if accountId == btcAcc =>
       commandBus ! DepositMoney(btcAcc, Money(100, CurrencyUnit("BTC")))
-    case MoneyDeposited(accountId, amount, _, _) if accountId == btcAcc =>
+    case MoneyDeposited(accountId, amount, _) if accountId == btcAcc =>
       val limit = 100.0 //+ new Random().nextDouble()
     val quantity = amount.amount
       if (quantity > 0)
         commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), quantity, Money(BigDecimal(limit).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Sell, eurAcc, btcAcc))
-    case MoneyDeposited(accountId, amount, _, _) if accountId == eurAcc =>
+    case MoneyDeposited(accountId, amount, _) if accountId == eurAcc =>
       val limit = 100.0 //+ new Random().nextDouble()
     val quantity = (amount.amount / limit).setScale(0, BigDecimal.RoundingMode.HALF_DOWN)
       if (quantity > 0)

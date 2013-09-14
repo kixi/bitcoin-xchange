@@ -45,11 +45,11 @@ case class AccountId(id: String = UUID.randomUUID().toString) extends Identity
 
 class AccountFactory extends AggregateFactory[Account, AccountEvent, AccountId] {
 
-  def create(id: AccountId, currency: CurrencyUnit) = applyEvent(AccountOpened(id, currency, new Money(0, currency)))
+  def create(id: AccountId, currency: CurrencyUnit) = applyEvent(AccountOpened(id, currency))
 
   override def applyEvent(e: AccountEvent) = {
     e match {
-      case event: AccountOpened => new Account(event :: Nil, 0, event.id, event.currency, Map.empty[TransactionId, Money], event.balance)
+      case event: AccountOpened => new Account(event :: Nil, 0, event.id, event.currency, Map.empty[TransactionId, Money], Money(0, event.currency))
       case event => throw new UnhandledEventException("Aggregate Account does not handle event " + event)
     }
   }
@@ -75,7 +75,7 @@ case class Account(
     ensureAmountIsPositive(amount)
     ensureSufficientFunds(amount, withdrawalId)
     ensureCurrenciesMatch(amount)
-    applyEvent(MoneyWithdrawalRequested(id, withdrawalId, amount, balance - amount))
+    applyEvent(MoneyWithdrawalRequested(id, withdrawalId, amount)).subtractFromBalance(amount)
   }
 
   def confirmMoneyWithdrawal(withdrawalId: TransactionId): Account = {
@@ -88,7 +88,15 @@ case class Account(
   def depositMoney(amount: Money): Account = {
     ensureAmountIsPositive(amount)
     ensureCurrenciesMatch(amount)
-    applyEvent(MoneyDeposited(id, amount, balance + amount))
+    applyEvent(MoneyDeposited(id, amount)).addToBalance(amount)
+  }
+
+  private def addToBalance(amount: Money): Account = {
+    applyEvent(BalanceChanged(id, balance+amount))
+  }
+
+  private def subtractFromBalance(amount: Money): Account = {
+    applyEvent(BalanceChanged(id, balance-amount))
   }
 
   def ensureSufficientFunds(amount: Money, transactionId: TransactionId) {
@@ -115,30 +123,32 @@ case class Account(
       case event: MoneyDeposited => when(event)
       case event: MoneyWithdrawalRequested => when(event)
       case event: MoneyWithdrawalConfirmed => when(event)
+      case event: BalanceChanged => when(event)
       case event => throw new UnhandledEventException("Aggregate Account does not handle event " + event)
     }
   }
 
   def when(e: AccountOpened): Account = {
-    Account(e :: uncommittedEventsReverse, 1, e.id, e.currency, Map.empty[TransactionId, Money], e.balance)
+    Account(e :: uncommittedEventsReverse, 1, e.id, e.currency, Map.empty[TransactionId, Money], Money(0, e.currency))
   }
 
   def when(e: MoneyDeposited): Account = {
-    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse, balance = e.balance)
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse)
   }
 
   def when(e: MoneyWithdrawalRequested): Account = {
-    if (e.balance.amount < 0) {
-      log.error("" + this + " balance is smaller than 0!!!")
-    }
-    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
-      requestedWithdrawals = requestedWithdrawals + (e.transactionId -> e.amount),
-      balance = e.balance)
+     copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
+      requestedWithdrawals = requestedWithdrawals + (e.transactionId -> e.amount))
   }
 
   def when(e: MoneyWithdrawalConfirmed): Account = {
     copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
       requestedWithdrawals = requestedWithdrawals - e.transactionId)
+  }
+
+  def when(e: BalanceChanged): Account = {
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
+      balance=e.balance)
   }
 
 }

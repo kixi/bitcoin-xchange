@@ -31,7 +31,7 @@
 package org.kixi.xc.projections
 
 import akka.actor.Actor
-import org.kixi.xc.core.account.domain.{AccountOpened, MoneyDeposited, AccountId}
+import org.kixi.xc.core.account.domain.{BalanceChanged, AccountOpened, MoneyDeposited, AccountId}
 import org.kixi.xc.core.common.Money
 
 /**
@@ -48,18 +48,21 @@ class AccountProjection extends Actor {
   def receive = {
     case evt: MoneyDeposited => when(evt)
     case evt: AccountOpened => when(evt)
+    case evt: BalanceChanged => when(evt)
     case cmd: ListAccounts => {
       sender ! accounts.toList
     }
   }
 
   def when(e: MoneyDeposited) {
-    accounts(e.id) = e.balance
   }
 
   def when(e: AccountOpened) {
-    accounts put(e.id, e.balance)
+    accounts put(e.id, Money(0, e.currency))
   }
 
+  def when(e: BalanceChanged) {
+    accounts put(e.id, e.balance)
+  }
 
 }
