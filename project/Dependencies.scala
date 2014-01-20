@@ -47,9 +47,7 @@ object Dependencies {
 
   val metrics = "com.yammer.metrics" % "metrics-core" % "2.1.2"
 
-  val eventstoreCustom = "com.eventstore" %% "eventstore-client" % "0.1-SNAPSHOT"
-
-  val eventstoreNew = "com.geteventstore" %% "main" % "0.1-SNAPSHOT"
+  val eventstore = "com.geteventstore" % "eventstore-client_2.10" % "0.2.0"
   val jodaTime = "joda-time" % "joda-time" % "2.1"
   val jodaConvert = "org.joda" % "joda-convert" % "1.2"
 
@@ -63,7 +61,7 @@ object Dependencies {
     jodaTime,
     jodaConvert,
     logback,
-    eventstoreNew,
+    eventstore,
     metrics
   )
 }

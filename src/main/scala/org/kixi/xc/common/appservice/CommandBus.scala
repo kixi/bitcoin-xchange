@@ -35,7 +35,7 @@ import org.kixi.xc.core.orderbook.domain.OrderBookCommand
 import org.kixi.xc.core.account.domain.AccountCommand
 
 
-class CommandBus(eventStore: ActorRef, accountProcessor: ActorRef, orderBookService: ActorRef) extends Actor with ActorLogging {
+class CommandBus(accountProcessor: ActorRef, orderBookService: ActorRef) extends Actor with ActorLogging {
   def receive = {
     case cmd: OrderBookCommand =>
       log.debug("received " + cmd)

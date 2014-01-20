@@ -106,27 +106,27 @@ class GYEventStoreBridgeActor(eventStore: ActorRef) extends Actor with ActorLogg
       val eventList =
         for (evt <- events) yield {
           val streamMetadata = ByteString(evt.getClass.getSimpleName)
-          EventData(UUID.randomUUID(), "testtype", ByteString(JavaSerializer.writeObject(evt)), streamMetadata)
+          EventData("testtype", UUID.randomUUID(),  Content(ByteString(JavaSerializer.writeObject(evt))))
         }
-      eventStore ! AppendToStream(Id(streamId), Any, eventList)
+      eventStore ! WriteEvents(Id(streamId), eventList)
     case LoadEventStream(streamId, boomerang) =>
       log.debug("Read events from store - stream id=" + streamId)
       eventStore ! ReadStreamEvents(Id(streamId), EventNumber.First, MaxBatchSize, ReadDirection.Forward)
 
-    case ReadStreamEventsSucceed(events, _, _, _, _, _) =>
+    case ReadStreamEventsCompleted(events, _, _, _, _, _) =>
       if (!events.isEmpty) {
         val streamId = events.head.streamId
         val evts =
           (for (e <- events) yield {
             val eventData = e.data
-            val bytes = eventData.data.toArray
+            val bytes = eventData.data.value.toArray
             JavaSerializer.readObject(bytes)
           }).toList
         context.parent ! EventsLoaded(EventStream(evts, StreamRevision(evts.size)), None)
       }
-    case msg@ReadStreamEventsFailed(events, _, _) =>
+    case msg @ ReadStreamEventsCompleted(events, _, _, _, _, _ ) =>
       context.parent ! EventsLoaded(EventStream(Nil, StreamRevision(0)), None)
-    case msg: AppendToStreamSucceed =>
+    case msg: WriteEventsCompleted =>
       context.parent ! "committed"
     case cmd =>
       log.error(s"unknown command $cmd")

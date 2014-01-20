@@ -65,17 +65,17 @@ object ServiceEnvironment {
   val handler = system.actorOf(Props(classOf[AkkaEventHandler]), "event-handler")
   val gyHandler = system.actorOf(GYEventStoreHandler.props(handler))
 
-  val eventStoreActor = system.actorOf(Props(classOf[ConnectionActor], Settings(
-    address = new InetSocketAddress("192.168.56.1", 1113),
-    heartbeatTimeout = 20.seconds)), "event-store")
-  eventStoreActor.tell(SubscribeTo(All), gyHandler)
+//  val eventStoreActor = system.actorOf(Props(classOf[ConnectionActor], Settings(
+//    address = new InetSocketAddress("192.168.56.1", 1113),
+//    heartbeatTimeout = 20.seconds)), "event-store")
+//  eventStoreActor.tell(SubscribeTo(All), gyHandler)
   // val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
-  val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor)
+ // val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor)
   val bridgeFake = FakeEventStoreBridgeActor.props(handler)
 
   val accountProcessor = system.actorOf(AccountService.props(bridgeFake), "account-processor")
   val orderBookProcessor = system.actorOf(OrderBookService.props(bridgeFake, handler), "orderbook-processor")
-  val commandBus = system.actorOf(Props(classOf[CommandBus], eventStoreActor, accountProcessor, orderBookProcessor), "command-bus")
+  val commandBus = system.actorOf(Props(classOf[CommandBus], accountProcessor, orderBookProcessor), "command-bus")
   val accountView = system.actorOf(Props(classOf[AccountProjection]), "account-projection")
   val counter = system.actorOf(Props(classOf[OrderCounterProjection]), "order-counter-projection")
 
