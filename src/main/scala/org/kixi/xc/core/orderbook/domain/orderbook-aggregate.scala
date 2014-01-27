@@ -37,6 +37,7 @@ import org.kixi.xc.core.common.UnhandledEventException
 import org.kixi.xc.core.common.CurrencyUnit
 import org.kixi.xc.core.common.OrderExpiredException
 import org.kixi.xc.core.account.domain.TransactionId
+import scala.collection.immutable.TreeSet
 
 case class OrderBookId(id: String) extends Identity
 
@@ -46,22 +47,33 @@ class OrderBookFactory extends AggregateFactory[OrderBook, OrderBookEvent, Order
 
   def applyEvent(e: OrderBookEvent) = e match {
     case e: OrderBookCreated => OrderBook(
-      e :: Nil, 0, e.id,
-      Map.empty[OrderId, LimitOrder], List.empty[Order], List.empty[Order],
-      e.currency,
-      Money(0, e.currency),
-      Money(0, e.currency),
-      Money(0, e.currency))
+      id = e.id,
+      currency = e.currency,
+      referencePrice = Money(0, e.currency),
+      currentBid = Money(0, e.currency),
+      currentAsk = Money(0, e.currency))
   }
 }
-
+object OrderOrdering extends Ordering[Order] {
+  def compare(o1: Order, o2: Order) = {
+    if (o1.id == o2.id)
+      0
+    else {
+      if (o1.hasHigherPriorityThan(o2)) {
+        -1
+      } else {
+        1
+      }
+    }
+  }
+}
 case class OrderBook(
                       uncommittedEventsReverse: List[OrderBookEvent] = Nil,
                       version: Int = 0,
                       id: OrderBookId,
                       preparedOrders: Map[OrderId, LimitOrder] = Map.empty[OrderId, LimitOrder],
-                      buyOrders: List[Order] = Nil,
-                      sellOrders: List[Order] = Nil,
+                      buyOrders: TreeSet[Order] = TreeSet.empty(OrderOrdering),
+                      sellOrders: TreeSet[Order] = TreeSet.empty(OrderOrdering),
                       currency: CurrencyUnit,
                       referencePrice: Money,
                       currentBid: Money,
@@ -72,6 +84,16 @@ case class OrderBook(
     copy(version = version)
   }
 
+  def process(cmd: OrderBookCommand): OrderBook = cmd match {
+    case c: PlaceOrder =>
+      placeOrder(c.transactionId, c.order)
+    case c: PrepareOrderPlacement =>
+      prepareOrderPlacement(c.orderId, c.transactionId, c.order)
+    case c: ConfirmOrderPlacement =>
+      confirmOrderPlacement(c.orderId, c.transactionId)
+    case msg =>
+      throw new RuntimeException(s"Unknown message $msg")
+  }
   def placeOrder(transactionId: TransactionId, order: LimitOrder): OrderBook = {
     applyEvent(new OrderPlaced(id, transactionId, order))
   }
@@ -117,17 +139,17 @@ case class OrderBook(
     }
   }
 
-  private def clearExpiredOrders(orders: List[Order]): OrderBook = {
-    if (!orders.isEmpty && orders.head.expired) {
-      val this0 = applyEvent(OrderExpired(id, orders.head))
-      this0.clearExpiredOrders(orders.tail)
-    } else {
-      this
-    }
+  private def clearExpiredOrders(orders: TreeSet[Order]): OrderBook = {
+    var this0 = this
+// to slow!!!
+//    for (order <- orders if order.expired) {
+//      this0 = this0.applyEvent(OrderExpired(id, order))
+//    }
+    this0
   }
 
 
-  private def matchOrder(order: Order, matchList: List[Order]): OrderBook = {
+  private def matchOrder(order: Order, matchList: TreeSet[Order]): OrderBook = {
     val queuedOrder = matchList.head
     val quantity = queuedOrder.quantity min order.quantity
 
@@ -215,9 +237,9 @@ case class OrderBook(
 
   def when(event: OrderAdjusted) = {
     if (event.order.buy)
-      this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse, buyOrders = event.order :: buyOrders.tail)
+      this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse, buyOrders = buyOrders + event.order)
     else
-      this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse, sellOrders = event.order :: sellOrders.tail)
+      this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse, sellOrders = sellOrders + event.order)
   }
 
   def when(event: OrdersExecuted) = {
@@ -238,20 +260,13 @@ case class OrderBook(
     }
   }
 
-  def remove(orderList: List[Order], order: Order): List[Order] = orderList match {
-    case Nil => Nil
-    case head :: tail =>
-      if (head == order) tail
-      else head :: remove(tail, order)
+  def remove(orderList: TreeSet[Order], order: Order): TreeSet[Order] = {
+    orderList.filter(o => o.id != order.id)
   }
 
-  private def insertOrder(orderList: List[Order], order: Order): List[Order] = {
-    if (orderList.isEmpty) order :: Nil
-    else if (order.hasHigherPriorityThan(orderList.head)) {
-      order :: orderList
-    } else {
-      orderList.head :: insertOrder(orderList.tail, order)
-    }
+  private def insertOrder(orderList: TreeSet[Order], order: Order): TreeSet[Order] = {
+
+    orderList + order
   }
 
 }

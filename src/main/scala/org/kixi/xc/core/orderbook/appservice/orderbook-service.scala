@@ -52,7 +52,6 @@ object OrderBookService {
   def props(props: Props, handler: ActorRef) = Props(classOf[OrderBookService], props, handler)
 }
 
-
 class OrderBookService(props: Props, handler: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
@@ -77,83 +76,85 @@ object OrderBookActor {
 
 class OrderBookActor(bridge: Props, eventHandler: ActorRef, orderBookId: OrderBookId) extends Actor with ActorLogging {
 
-  var orderBook: Option[OrderBook] = None
-  val bridgeActor = context.actorOf(bridge, "bridge-" + orderBookId.id)
+  var aggregate: Option[OrderBook] = None
+  val bridgeActor = context.actorOf(bridge, "bridge-" + aggregateId)
 
   override def preStart() = {
-    bridgeActor ! LoadEventStream(orderBookId.id, None)
+    log.debug("restoring aggregate")
+    bridgeActor ! LoadEventStream(aggregateId, None)
   }
 
   def receive = loading()
 
-  def loading(stash: Queue[(ActorRef, OrderBookCommand)] = Queue()): Receive = {
-    case msg: EventsLoaded[OrderBookCommand] =>
-      orderBook = restoreAggregate(msg)
-      log.debug(s"Order book restored $orderBook")
+  def loading(stash: Queue[(ActorRef, Any)] = Queue()): Receive = {
+    case msg: EventsLoaded[OrderBookEvent] =>
+      aggregate = restoreAggregate(msg)
+      log.debug(s"aggregate restored $aggregate")
       context become running
       processStash(stash)
-    case command: OrderBookCommand =>
+    case command =>
       log.debug(s"stashing while waiting for orderbook to be restored: $command")
       context become loading(stash enqueue (sender -> command))
-    case msg =>
-      log.warning(s"Unknown message $msg")
   }
 
-  private def processStash(stash: Queue[(ActorRef, OrderBookCommand)]) {
+  private def processStash(stash: Queue[(ActorRef, Any)]) {
     for ((s, cmd) <- stash) {
       self.tell(cmd, sender = s)
     }
   }
 
-
-  private def restoreAggregate(msg: EventsLoaded[OrderBookCommand]): Option[OrderBook] = {
+  private def restoreAggregate(msg: EventsLoaded[OrderBookEvent]): Option[OrderBook] = {
     if (msg.stream.streamVersion != StreamRevision.Initial)
       Some(new OrderBookFactory().restoreFromHistory(msg.stream.events.asInstanceOf[List[OrderBookEvent]]))
     else
       None
   }
 
+  private def createAggregate(c: CreateOrderBook): OrderBook = {
+    new OrderBookFactory().create(c.id, c.currency)
+  }
+
+  private def aggregateId = {
+    orderBookId.id
+  }
+  
   def running: Receive = {
     case c: CreateOrderBook =>
-      publishEvents(new OrderBookFactory().create(c.id, c.currency))
-    case c: PlaceOrder =>
-      publishEvents(_.placeOrder(c.transactionId, c.order))
-    case c: PrepareOrderPlacement =>
-      publishEvents(_.prepareOrderPlacement(c.orderId, c.transactionId, c.order))
-    case c: ConfirmOrderPlacement =>
-      publishEvents(_.confirmOrderPlacement(c.orderId, c.transactionId))
-    case msg =>
+      publishEvents(createAggregate(c))
+    case msg: OrderBookCommand =>
+      publishEvents(_.process(msg))
       log.warning(s"Unknown message $msg")
   }
 
-  def waiting4Confirmation(stash: Queue[(ActorRef, OrderBookCommand)] = Queue()): Receive = {
-    case command: OrderBookCommand =>
-      val newqueue = stash enqueue (sender -> command)
-      val size = newqueue.size
-      log.debug(s"Command arrived while waiting for event store confirmation - stash size: $size command $command")
-      context become waiting4Confirmation(newqueue)
+
+  def waiting4Commit(stash: Queue[(ActorRef, Any)] = Queue()): Receive = {
     case EventsCommitted(commit) =>
       log.debug(s"Events committed: $commit")
       context become running
       processStash(stash)
     case EventsConflicted(conflict, backback) =>
+    case command =>
+      val newqueue = stash enqueue (sender -> command)
+      val size = newqueue.size
+      log.debug(s"Command arrived while waiting for event store confirmation - stash size: $size command $command")
+      context become waiting4Commit(newqueue)
   }
 
   private def publishEvents(f: OrderBook => OrderBook) {
-    orderBook = Some(f(orderBook.get))
+    aggregate = Some(f(aggregate.get))
     publish()
   }
 
   private def publishEvents(f: => OrderBook) {
-    orderBook = Some(f)
+    aggregate = Some(f)
     publish()
   }
 
   private def publish() {
-    bridgeActor ! AppendEventsToStream(orderBookId.id, StreamRevision.NoConflict, orderBook.get.uncommittedEventsReverse.reverse, None)
+    bridgeActor ! AppendEventsToStream(orderBookId.id, StreamRevision.NoConflict, aggregate.get.uncommittedEventsReverse.reverse, None)
     //  implicit val timeout = Timeout(5000)
     //  Await.result((eventStore ? AppendEventsToStream(orderBookId.toString, StreamRevision.NoConflict,orderBook.get.uncommittedEventsReverse.reverse, None )), timeout.duration)
-    orderBook = Some(orderBook.get.markCommitted)
+    aggregate = Some(aggregate.get.markCommitted)
     //   context become waiting4Confirmation()
   }
 

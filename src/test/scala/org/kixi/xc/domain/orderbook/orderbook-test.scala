@@ -660,10 +660,10 @@ class OrderBook_T18 extends OrderBookTest {
     given(new OrderBookFactory()) {
       OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("4"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("5"), now, CurrencyUnit("BTC"), 2.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now.plus(1), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now.plus(2), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("4"), now.plus(3), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("5"), now.plus(4), CurrencyUnit("BTC"), 2.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
 
@@ -677,22 +677,22 @@ class OrderBook_T18 extends OrderBookTest {
         LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
         Money(100, CurrencyUnit("EUR"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
-          LimitOrder(OrderId("2"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+          LimitOrder(OrderId("2"), now.plus(1), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
           LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
           Money(100, CurrencyUnit("EUR"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
-          LimitOrder(OrderId("3"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+          LimitOrder(OrderId("3"), now.plus(2), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
           LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
           Money(100, CurrencyUnit("EUR"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
-          LimitOrder(OrderId("4"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+          LimitOrder(OrderId("4"), now.plus(3), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
           LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
           Money(100, CurrencyUnit("EUR"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
-          LimitOrder(OrderId("5"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+          LimitOrder(OrderId("5"), now.plus(4), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
           LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
           Money(100, CurrencyUnit("EUR"))) ::
-        OrderAdjusted(OrderBookId("BTCEUR"), LimitOrder(OrderId("5"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderAdjusted(OrderBookId("BTCEUR"), LimitOrder(OrderId("5"), now.plus(4), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
   }
@@ -704,11 +704,11 @@ class OrderBook_T19 extends OrderBookTest {
   test("order in order book has higher quantity than new order order gets crossed and quened") {
     given(new OrderBookFactory()) {
       OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("4"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
-        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("5"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now.plus(1), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now.plus(2), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now.plus(3), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("4"), now.plus(4), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
+        OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("5"), now.plus(5), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
 
@@ -718,23 +718,23 @@ class OrderBook_T19 extends OrderBookTest {
 
     expected {
       OrdersExecuted(OrderBookId("BTCEUR"),
-        LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+        LimitOrder(OrderId("1"), now.plus(1), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
         LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
         Money(100, CurrencyUnit("EUR"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
-          LimitOrder(OrderId("2"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+          LimitOrder(OrderId("2"), now.plus(2), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
           LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
           Money(100, CurrencyUnit("EUR"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
-          LimitOrder(OrderId("3"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+          LimitOrder(OrderId("3"), now.plus(3), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
           LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
           Money(100, CurrencyUnit("EUR"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
-          LimitOrder(OrderId("4"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+          LimitOrder(OrderId("4"), now.plus(4), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
           LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
           Money(100, CurrencyUnit("EUR"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
-          LimitOrder(OrderId("5"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
+          LimitOrder(OrderId("5"), now.plus(5), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
           LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")),
           Money(100, CurrencyUnit("EUR"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("10"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::

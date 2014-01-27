@@ -45,7 +45,6 @@ object AccountService {
 }
 
 class AccountService(bridge: Props) extends Actor with ActorLogging {
-
   def receive = {
     case cmd: AccountCommand => {
       context.child("account-" + cmd.id.id) match {
@@ -71,7 +70,6 @@ trait ActorState {
   def restoreAggregate(msg: EventsLoaded[AccountCommand]): ActorState
 
   def process(cmd: AccountCommand): ActorState
-
 }
 
 case class AggregateNotLoadedException(id: Identity, aggregateType: Class[_], msg: String) extends RuntimeException(s"$aggregateType, id=$id: $msg")
