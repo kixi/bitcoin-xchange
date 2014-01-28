@@ -22,3 +22,5 @@
 2014-01-20 23:08:56,561 INFO [bitcoin-xchange-akka.actor.default-dispatcher-4] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
 2014-01-20 23:21:58,225 INFO [bitcoin-xchange-akka.actor.default-dispatcher-2] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
 2014-01-20 23:21:59,093 INFO [bitcoin-xchange-akka.actor.default-dispatcher-5] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2014-01-28 19:16:16,194 INFO [bitcoin-xchange-akka.actor.default-dispatcher-2] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started
+2014-01-28 19:16:17,279 INFO [bitcoin-xchange-akka.actor.default-dispatcher-5] a.e.s.Slf4jLogger [Slf4jLogger.scala:80] Slf4jLogger started

@@ -46,7 +46,7 @@ import org.kixi.xc.core.orderbook.domain.CreateOrderBook
 import org.kixi.xc.core.orderbook.domain.ConfirmOrderPlacement
 import scala.Some
 import org.kixi.xc.core.orderbook.domain.PrepareOrderPlacement
-import org.kixi.xc.core.orderbook.domain.PlaceOrder
+import org.kixi.xc.core.orderbook.domain.ProcessOrder
 
 object OrderBookService {
   def props(props: Props, handler: ActorRef) = Props(classOf[OrderBookService], props, handler)

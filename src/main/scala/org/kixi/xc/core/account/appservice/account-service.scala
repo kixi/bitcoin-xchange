@@ -104,7 +104,7 @@ case class AccountState(accountId: AccountId, aggregate: Option[Account] = None)
   def processAlter(cmd: AccountCommand, account: Account): Account = cmd match {
     case cmd: DepositMoney =>
       account.depositMoney(cmd.amount)
-    case cmd: RequestMoneyWithdrawal =>
+    case cmd: WithdrawMoney =>
       account.requestMoneyWithdrawal(cmd.transactionId, cmd.amount)
     case cmd: ConfirmMoneyWithdrawal =>
       account.confirmMoneyWithdrawal(cmd.transactionId)

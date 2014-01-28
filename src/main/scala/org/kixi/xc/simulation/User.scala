@@ -43,7 +43,7 @@ import org.kixi.xc.core.common.Money
 import org.kixi.xc.core.account.domain.OpenAccount
 import org.kixi.xc.core.orderbook.domain.OrderBookId
 import org.kixi.xc.core.account.domain.DepositMoney
-import org.kixi.xc.core.orderbook.domain.PlaceOrder
+import org.kixi.xc.core.orderbook.domain.ProcessOrder
 import org.kixi.xc.core.account.domain.MoneyDeposited
 import org.kixi.xc.core.account.domain.AccountOpened
 
@@ -90,12 +90,12 @@ class User(commandBus: ActorRef, userId: Int) extends Actor {
       val limit = 100.0 //+ new Random().nextDouble()
     val quantity = amount.amount
       if (quantity > 0)
-        commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), quantity, Money(BigDecimal(limit).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Sell, eurAcc, btcAcc))
+        commandBus ! ProcessOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), quantity, Money(BigDecimal(limit).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Sell, eurAcc, btcAcc))
     case MoneyDeposited(accountId, amount, _) if accountId == eurAcc =>
       val limit = 100.0 //+ new Random().nextDouble()
     val quantity = (amount.amount / limit).setScale(0, BigDecimal.RoundingMode.HALF_DOWN)
       if (quantity > 0)
-        commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), quantity, Money(BigDecimal(limit).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Buy, eurAcc, btcAcc))
+        commandBus ! ProcessOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), quantity, Money(BigDecimal(limit).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Buy, eurAcc, btcAcc))
     case msg => System.out.println("Unexpected message: " + msg)
   }
 }

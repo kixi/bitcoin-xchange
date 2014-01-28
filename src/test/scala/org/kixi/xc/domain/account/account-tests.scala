@@ -38,7 +38,7 @@ import org.kixi.xc.core.account.domain.AccountId
 import org.kixi.xc.core.common.InsufficientFundsException
 import org.kixi.xc.core.common.InvalidWithdrawalException
 import org.kixi.xc.core.account.domain.MoneyWithdrawalConfirmed
-import org.kixi.xc.core.account.domain.MoneyWithdrawalRequested
+import org.kixi.xc.core.account.domain.MoneyWithdrawn
 import org.kixi.xc.core.account.domain.MoneyDeposited
 import org.kixi.xc.core.account.domain.AccountOpened
 import org.kixi.cqrslib.aggregate.SpecTest
@@ -59,7 +59,7 @@ class Account_T1 extends AccountTest {
     }
 
     expected {
-      MoneyWithdrawalRequested(AccountId("1"), TransactionId("1"), Money(100, CurrencyUnit("EUR"))) ::
+      MoneyWithdrawn(AccountId("1"), TransactionId("1"), Money(100, CurrencyUnit("EUR"))) ::
         BalanceChanged(AccountId("1"), new Money(0, CurrencyUnit("EUR"))) ::
         Nil
     }
@@ -80,7 +80,7 @@ class Account_T2 extends AccountTest {
     }
 
     expected {
-      MoneyWithdrawalRequested(AccountId("1"), TransactionId("1"), Money(99, CurrencyUnit("EUR"))) ::
+      MoneyWithdrawn(AccountId("1"), TransactionId("1"), Money(99, CurrencyUnit("EUR"))) ::
         BalanceChanged(AccountId("1"), new Money(1, CurrencyUnit("EUR"))) ::
         Nil
     }

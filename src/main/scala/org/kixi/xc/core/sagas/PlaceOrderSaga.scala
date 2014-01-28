@@ -37,8 +37,8 @@ import org.kixi.xc.core.orderbook.domain._
 import org.kixi.xc.core.orderbook.domain.OrderPlaced
 import org.kixi.xc.core.common.Money
 import org.kixi.xc.core.orderbook.domain.ConfirmOrderPlacement
-import org.kixi.xc.core.account.domain.MoneyWithdrawalRequested
-import org.kixi.xc.core.account.domain.RequestMoneyWithdrawal
+import org.kixi.xc.core.account.domain.MoneyWithdrawn
+import org.kixi.xc.core.account.domain.WithdrawMoney
 import org.kixi.xc.core.account.domain.AccountId
 import org.kixi.xc.core.orderbook.domain.PrepareOrderPlacement
 import org.kixi.xc.core.orderbook.domain.OrderPlacementPrepared
@@ -77,7 +77,7 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
   }
 
   when(WaitingForAccountApproval) {
-    case Event(e: MoneyWithdrawalRequested, x: SagaData) =>
+    case Event(e: MoneyWithdrawn, x: SagaData) =>
       goto(WaitingForOrderBookApproval)
   }
 
@@ -100,7 +100,7 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
     case Start -> WaitingForAccountApproval =>
       nextStateData match {
         case SagaData(orderBookId, order, accountId, transactionId) =>
-          commandReceiver ! RequestMoneyWithdrawal(accountId, transactionId, if (order.buy) order.amount else Money(order.quantity, order.product))
+          commandReceiver ! WithdrawMoney(accountId, transactionId, if (order.buy) order.amount else Money(order.quantity, order.product))
         case _ =>
       }
     case WaitingForAccountApproval -> WaitingForOrderBookApproval =>
@@ -135,7 +135,7 @@ class PlaceOrderSagaRouter(val commandDispatcher: ActorRef) extends Actor with A
   def receive = {
 
     case e: OrderPlaced => forward(e.transactionId, e)
-    case e: MoneyWithdrawalRequested => forward(e.transactionId, e)
+    case e: MoneyWithdrawn => forward(e.transactionId, e)
     case e: OrderPlacementPrepared => forward(e.transactionId, e)
     case e: MoneyWithdrawalConfirmed => forward(e.transactionId, e)
     case e: OrderPlacementConfirmed => {

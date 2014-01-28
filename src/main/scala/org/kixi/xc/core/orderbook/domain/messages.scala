@@ -37,9 +37,9 @@ import org.kixi.xc.core.common.CurrencyUnit
 import org.kixi.xc.core.account.domain.TransactionId
 
 
-trait OrderBookCommand extends Command[OrderBookId]
+sealed trait OrderBookCommand extends Command[OrderBookId]
 
-trait OrderBookEvent extends Event[OrderBookId]
+sealed trait OrderBookEvent extends Event[OrderBookId]
 
 
 case class CreateOrderBook(id: OrderBookId, currency: CurrencyUnit, timestamp: DateTime = new DateTime()) extends OrderBookCommand
@@ -48,24 +48,7 @@ case class OrderBookCreated(id: OrderBookId, currency: CurrencyUnit, timestamp: 
   def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
 }
 
-case class PlaceOrder(id: OrderBookId, transactionId: TransactionId, order: LimitOrder, timestamp: DateTime = new DateTime()) extends OrderBookCommand
-
-case class OrderPlaced(id: OrderBookId, transactionId: TransactionId, order: LimitOrder, timestamp: DateTime = new DateTime()) extends OrderBookEvent {
-  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
-}
-
-case class PrepareOrderPlacement(id: OrderBookId, transactionId: TransactionId, orderId: OrderId, order: LimitOrder, timestamp: DateTime = new DateTime()) extends OrderBookCommand
-
-case class OrderPlacementPrepared(id: OrderBookId, transactionId: TransactionId, orderId: OrderId, order: LimitOrder, timestamp: DateTime = new DateTime()) extends OrderBookEvent {
-  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
-}
-
-case class ConfirmOrderPlacement(id: OrderBookId, transactionId: TransactionId, orderId: OrderId, order: LimitOrder, timestamp: DateTime = new DateTime()) extends OrderBookCommand
-
-case class OrderPlacementConfirmed(id: OrderBookId, transactionId: TransactionId, orderId: OrderId, timestamp: DateTime = new DateTime()) extends OrderBookEvent {
-  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
-}
-
+case class ProcessOrder(id: OrderBookId, transactionId: TransactionId, order: LimitOrder, timestamp: DateTime = new DateTime()) extends OrderBookCommand
 
 case class OrderQueued(id: OrderBookId, order: Order, timestamp: DateTime = new DateTime()) extends OrderBookEvent {
   def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)

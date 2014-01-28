@@ -71,7 +71,6 @@ case class OrderBook(
                       uncommittedEventsReverse: List[OrderBookEvent] = Nil,
                       version: Int = 0,
                       id: OrderBookId,
-                      preparedOrders: Map[OrderId, LimitOrder] = Map.empty[OrderId, LimitOrder],
                       buyOrders: TreeSet[Order] = TreeSet.empty(OrderOrdering),
                       sellOrders: TreeSet[Order] = TreeSet.empty(OrderOrdering),
                       currency: CurrencyUnit,
@@ -85,31 +84,10 @@ case class OrderBook(
   }
 
   def process(cmd: OrderBookCommand): OrderBook = cmd match {
-    case c: PlaceOrder =>
-      placeOrder(c.transactionId, c.order)
-    case c: PrepareOrderPlacement =>
-      prepareOrderPlacement(c.orderId, c.transactionId, c.order)
-    case c: ConfirmOrderPlacement =>
-      confirmOrderPlacement(c.orderId, c.transactionId)
+    case c: ProcessOrder =>
+      makeOrder(c.order)
     case msg =>
       throw new RuntimeException(s"Unknown message $msg")
-  }
-  def placeOrder(transactionId: TransactionId, order: LimitOrder): OrderBook = {
-    applyEvent(new OrderPlaced(id, transactionId, order))
-  }
-
-  def prepareOrderPlacement(orderId: OrderId, transactionId: TransactionId, order: LimitOrder) = {
-    applyEvent(new OrderPlacementPrepared(id, transactionId, orderId, order))
-  }
-
-  def confirmOrderPlacement(orderId: OrderId, transactionId: TransactionId) = {
-    preparedOrders.get(orderId) match {
-      case Some(order: Order) => {
-        applyEvent(new OrderPlacementConfirmed(id, transactionId, orderId)).
-          makeOrder(order)
-      }
-      case None => throw new RuntimeException("Order with ID " + orderId + " was not prepared and cannot be confirmed!")
-    }
   }
 
   def cleanupFromExpiredOrders: OrderBook = {
@@ -207,25 +185,10 @@ case class OrderBook(
     case event: OrderAdjusted => when(event)
     case event: OrdersExecuted => when(event)
     case event: OrderExpired => when(event)
-    case event: OrderPlaced => when(event)
-    case event: OrderPlacementPrepared => when(event)
-    case event: OrderPlacementConfirmed => when(event)
     case event => throw new UnhandledEventException("Aggregate OrderBook does not handle event " + event)
   }
 
   def markCommitted = copy(uncommittedEventsReverse = Nil)
-
-  def when(event: OrderPlaced) = {
-    copy(event :: uncommittedEventsReverse)
-  }
-
-  def when(event: OrderPlacementPrepared) = {
-    copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders + (event.orderId -> event.order))
-  }
-
-  def when(event: OrderPlacementConfirmed) = {
-    copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders - event.orderId)
-  }
 
   def when(event: OrderQueued) = {
     if (event.order.buy)

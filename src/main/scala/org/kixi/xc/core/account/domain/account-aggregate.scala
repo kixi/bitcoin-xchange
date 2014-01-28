@@ -37,7 +37,6 @@ import java.util.UUID
 import org.kixi.xc.core.common.UnhandledEventException
 import org.kixi.xc.core.common.InsufficientFundsException
 import org.kixi.xc.core.common.InvalidAmountException
-import org.kixi.xc.core.common.InvalidWithdrawalException
 import org.kixi.xc.core.common.InvalidCurrencyException
 
 
@@ -49,7 +48,7 @@ class AccountFactory extends AggregateFactory[Account, AccountEvent, AccountId] 
 
   override def applyEvent(e: AccountEvent) = {
     e match {
-      case event: AccountOpened => new Account(event :: Nil, 0, event.id, event.currency, Map.empty[TransactionId, Money], Money(0, event.currency))
+      case event: AccountOpened => new Account(event :: Nil, 0, event.id, event.currency, Money(0, event.currency))
       case event => throw new UnhandledEventException("Aggregate Account does not handle event " + event)
     }
   }
@@ -60,7 +59,6 @@ case class Account(
                     version: Int,
                     id: AccountId,
                     currency: CurrencyUnit,
-                    requestedWithdrawals: Map[TransactionId, Money],
                     balance: Money) extends AggregateRoot[Account, AccountEvent, AccountId] {
 
   val log = Logger("Account")
@@ -75,14 +73,7 @@ case class Account(
     ensureAmountIsPositive(amount)
     ensureSufficientFunds(amount, withdrawalId)
     ensureCurrenciesMatch(amount)
-    applyEvent(MoneyWithdrawalRequested(id, withdrawalId, amount)).subtractFromBalance(amount)
-  }
-
-  def confirmMoneyWithdrawal(withdrawalId: TransactionId): Account = {
-    if (!requestedWithdrawals.contains(withdrawalId)) {
-      throw new InvalidWithdrawalException("Withdrawal with id " + id + " was not found. Cannot confirm it")
-    }
-    applyEvent(MoneyWithdrawalConfirmed(id, withdrawalId))
+    applyEvent(MoneyWithdrawn(id, withdrawalId, amount)).subtractFromBalance(amount)
   }
 
   def depositMoney(amount: Money): Account = {
@@ -121,35 +112,27 @@ case class Account(
     e match {
       case event: AccountOpened => when(event)
       case event: MoneyDeposited => when(event)
-      case event: MoneyWithdrawalRequested => when(event)
-      case event: MoneyWithdrawalConfirmed => when(event)
+      case event: MoneyWithdrawn => when(event)
       case event: BalanceChanged => when(event)
       case event => throw new UnhandledEventException("Aggregate Account does not handle event " + event)
     }
   }
 
   def when(e: AccountOpened): Account = {
-    Account(e :: uncommittedEventsReverse, 1, e.id, e.currency, Map.empty[TransactionId, Money], Money(0, e.currency))
+    Account(e :: uncommittedEventsReverse, 1, e.id, e.currency, Money(0, e.currency))
   }
 
   def when(e: MoneyDeposited): Account = {
     copy(uncommittedEventsReverse = e :: uncommittedEventsReverse)
   }
 
-  def when(e: MoneyWithdrawalRequested): Account = {
-     copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
-      requestedWithdrawals = requestedWithdrawals + (e.transactionId -> e.amount))
-  }
-
-  def when(e: MoneyWithdrawalConfirmed): Account = {
-    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
-      requestedWithdrawals = requestedWithdrawals - e.transactionId)
+  def when(e: MoneyWithdrawn): Account = {
+     copy(uncommittedEventsReverse = e :: uncommittedEventsReverse)
   }
 
   def when(e: BalanceChanged): Account = {
     copy(uncommittedEventsReverse = e :: uncommittedEventsReverse,
       balance=e.balance)
   }
-
 }
 
