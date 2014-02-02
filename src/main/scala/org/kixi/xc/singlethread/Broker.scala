@@ -74,8 +74,8 @@ object Broker {
       val Some(orderBook) = orderBooks.get(orderBookId)
       val Some(account) = if (order.buy) accounts.get(order.moneyAccount) else accounts.get(order.productAccount)
       accounts.put(account.id,
-        if (order.buy) account.requestMoneyWithdrawal(transactionId, order.amount)
-        else account.requestMoneyWithdrawal(transactionId, Money(order.quantity, account.currency)))
+        if (order.buy) account.withdrawMoney(transactionId, order.amount)
+        else account.withdrawMoney(transactionId, Money(order.quantity, account.currency)))
 
       orderBooks.put(orderBook.id, orderBook.makeOrder(order))
   }

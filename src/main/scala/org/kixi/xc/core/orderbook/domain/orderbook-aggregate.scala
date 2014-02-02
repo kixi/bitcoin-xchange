@@ -32,11 +32,9 @@ package org.kixi.xc.core.orderbook.domain
 
 import org.kixi.cqrslib.aggregate.{AggregateRoot, AggregateFactory, Identity}
 import org.kixi.xc.core.common._
-import scala.Some
 import org.kixi.xc.core.common.UnhandledEventException
 import org.kixi.xc.core.common.CurrencyUnit
 import org.kixi.xc.core.common.OrderExpiredException
-import org.kixi.xc.core.account.domain.TransactionId
 import scala.collection.immutable.TreeSet
 
 case class OrderBookId(id: String) extends Identity
@@ -85,9 +83,8 @@ case class OrderBook(
 
   def process(cmd: OrderBookCommand): OrderBook = cmd match {
     case c: ProcessOrder =>
-      makeOrder(c.order)
-    case msg =>
-      throw new RuntimeException(s"Unknown message $msg")
+      val ob = makeOrder(c.order)
+      ob.applyEvent(OrderProcessed(c.id, c.transactionId, c.order))
   }
 
   def cleanupFromExpiredOrders: OrderBook = {

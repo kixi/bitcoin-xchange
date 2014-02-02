@@ -48,8 +48,11 @@ case class OrderBookCreated(id: OrderBookId, currency: CurrencyUnit, timestamp: 
   def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
 }
 
-case class ProcessOrder(id: OrderBookId, transactionId: TransactionId, order: LimitOrder, timestamp: DateTime = new DateTime()) extends OrderBookCommand
+case class ProcessOrder(id: OrderBookId, transactionId: TransactionId, order: Order, timestamp: DateTime = new DateTime()) extends OrderBookCommand
 
+case class OrderProcessed(id: OrderBookId, transactionId: TransactionId, order: Order, timestamp: DateTime = new DateTime()) extends OrderBookEvent {
+  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
+}
 case class OrderQueued(id: OrderBookId, order: Order, timestamp: DateTime = new DateTime()) extends OrderBookEvent {
   def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
 }

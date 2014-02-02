@@ -36,8 +36,6 @@ import org.kixi.xc.core.account.domain._
 import org.kixi.xc.core.account.domain.Account
 import org.kixi.xc.core.account.domain.AccountId
 import org.kixi.xc.core.common.InsufficientFundsException
-import org.kixi.xc.core.common.InvalidWithdrawalException
-import org.kixi.xc.core.account.domain.MoneyWithdrawalConfirmed
 import org.kixi.xc.core.account.domain.MoneyWithdrawn
 import org.kixi.xc.core.account.domain.MoneyDeposited
 import org.kixi.xc.core.account.domain.AccountOpened
@@ -55,7 +53,7 @@ class Account_T1 extends AccountTest {
     }
 
     when {
-      (account: Account) => account.requestMoneyWithdrawal(TransactionId("1"), Money(100, CurrencyUnit("EUR")))
+      (account: Account) => account.withdrawMoney(TransactionId("1"), Money(100, CurrencyUnit("EUR")))
     }
 
     expected {
@@ -76,7 +74,7 @@ class Account_T2 extends AccountTest {
     }
 
     when {
-      (account: Account) => account.requestMoneyWithdrawal(TransactionId("1"), Money(99, CurrencyUnit("EUR")))
+      (account: Account) => account.withdrawMoney(TransactionId("1"), Money(99, CurrencyUnit("EUR")))
     }
 
     expected {
@@ -97,7 +95,7 @@ class Account_T3 extends AccountTest {
     }
 
     when {
-      (account: Account) => account.requestMoneyWithdrawal(TransactionId("1"), Money(101, CurrencyUnit("EUR")))
+      (account: Account) => account.withdrawMoney(TransactionId("1"), Money(101, CurrencyUnit("EUR")))
     }
 
     expected {

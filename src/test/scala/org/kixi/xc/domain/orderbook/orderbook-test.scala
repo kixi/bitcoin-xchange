@@ -37,11 +37,9 @@ import org.kixi.xc.core.orderbook.domain.OrderAdjusted
 import org.kixi.xc.core.orderbook.domain.OrderBook
 import org.kixi.xc.core.orderbook.domain.OrderBookCreated
 import org.kixi.xc.core.common.CurrencyUnit
-import org.kixi.xc.core.orderbook.domain.OrderPlaced
 import org.kixi.xc.core.orderbook.domain.OrderQueued
 import org.kixi.xc.core.orderbook.domain.OrdersExecuted
 import org.kixi.xc.core.common.Money
-import org.kixi.xc.core.orderbook.domain.OrderPlacementPrepared
 import org.kixi.xc.core.orderbook.domain.OrderBookId
 import org.kixi.xc.core.account.domain.{TransactionId, AccountId}
 import org.kixi.cqrslib.aggregate.SpecTest
@@ -743,32 +741,3 @@ class OrderBook_T19 extends OrderBookTest {
   }
 }
 
-class OrderBook_T0 extends FunSuite {
-  val now = new DateTime()
-  test("initiate place order") {
-    val book = new OrderBookFactory().create(OrderBookId("EURBTC"), CurrencyUnit("EUR"))
-      .markCommitted
-      .placeOrder(TransactionId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))
-
-    assert(book.uncommittedEventsReverse.head.hasSameContentAs(OrderPlaced(OrderBookId("EURBTC"), TransactionId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))))
-  }
-
-  test("prepare an order - ok") {
-    val book = new OrderBookFactory().create(OrderBookId("EURBTC"), CurrencyUnit("EUR"))
-      .markCommitted
-      .prepareOrderPlacement(OrderId("1"), TransactionId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))
-
-    assert(book.uncommittedEventsReverse.head.hasSameContentAs(OrderPlacementPrepared(OrderBookId("EURBTC"), TransactionId("1"), OrderId("1"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))))
-  }
-
-  /*
-  test("confirm an order - ok") {
-    val book = new OrderBookFactory().create(OrderBookId("EURBTC"), CurrencyUnit("EUR"))
-      .prepareOrderPlacement(OrderId("1"),TransactionId("1"),  LimitOrder(OrderId("1"),now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1"), AccountId("1")))
-      .markCommitted
-      .confirmOrderPlacement(OrderId("1"), TransactionId("1") )
-
-    assert(book.uncommittedEventsReverse.head === OrderPlacementConfirmed(OrderBookId("EURBTC"), TransactionId("1"), OrderId("1")))
-  }
-  */
-}

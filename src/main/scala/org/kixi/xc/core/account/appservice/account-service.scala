@@ -105,9 +105,7 @@ case class AccountState(accountId: AccountId, aggregate: Option[Account] = None)
     case cmd: DepositMoney =>
       account.depositMoney(cmd.amount)
     case cmd: WithdrawMoney =>
-      account.requestMoneyWithdrawal(cmd.transactionId, cmd.amount)
-    case cmd: ConfirmMoneyWithdrawal =>
-      account.confirmMoneyWithdrawal(cmd.transactionId)
+      account.withdrawMoney(cmd.transactionId, cmd.amount)
   }
 
   def publish(publishFunction: (String, List[AccountEvent]) => Unit): AccountState = {

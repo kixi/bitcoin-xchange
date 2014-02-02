@@ -69,16 +69,26 @@ case class Account(
     copy(version = version)
   }
 
-  def requestMoneyWithdrawal(withdrawalId: TransactionId, amount: Money): Account = {
+  def process(cmd: AccountCommand): Account = cmd match {
+    case cmd: DepositMoney =>
+      depositMoney(cmd.amount)
+    case cmd: WithdrawMoney =>
+      withdrawMoney(cmd.transactionId, cmd.amount)
+  }
+
+
+  def withdrawMoney(withdrawalId: TransactionId, amount: Money): Account = {
     ensureAmountIsPositive(amount)
     ensureSufficientFunds(amount, withdrawalId)
     ensureCurrenciesMatch(amount)
+
     applyEvent(MoneyWithdrawn(id, withdrawalId, amount)).subtractFromBalance(amount)
   }
 
   def depositMoney(amount: Money): Account = {
     ensureAmountIsPositive(amount)
     ensureCurrenciesMatch(amount)
+
     applyEvent(MoneyDeposited(id, amount)).addToBalance(amount)
   }
 
