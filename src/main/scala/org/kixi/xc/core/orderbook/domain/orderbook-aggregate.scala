@@ -182,6 +182,7 @@ case class OrderBook(
     case event: OrderAdjusted => when(event)
     case event: OrdersExecuted => when(event)
     case event: OrderExpired => when(event)
+    case event: OrderProcessed => when(event)
     case event => throw new UnhandledEventException("Aggregate OrderBook does not handle event " + event)
   }
 
@@ -218,6 +219,10 @@ case class OrderBook(
     } else {
       this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse, sellOrders = remove(sellOrders.tail, event.order))
     }
+  }
+
+  def when(event: OrderProcessed) = {
+    this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse)
   }
 
   def remove(orderList: TreeSet[Order], order: Order): TreeSet[Order] = {

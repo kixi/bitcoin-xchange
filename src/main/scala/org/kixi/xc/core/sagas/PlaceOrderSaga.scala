@@ -59,7 +59,7 @@ object PlaceOrderSaga {
   case object WaitingForOrderbook extends State
   sealed trait Data
   case object Uninitialized extends Data
-  case class SagaData(orderBookId: Option[OrderBookId], order: Order, accountId: AccountId, transactionId: TransactionId) extends Data
+  case class SagaData(orderBookId: OrderBookId, order: Order, accountId: AccountId, transactionId: TransactionId) extends Data
 }
 
 class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[State, Data] {
@@ -67,7 +67,7 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
 
   when(Start) {
     case Event(e: OrderPlaced, Uninitialized) => {
-      goto(WaitingForWithdrawal) using SagaData(None, e.order, if (e.order.buy) e.order.moneyAccount else e.order.productAccount, e.transactionId)
+      goto(WaitingForWithdrawal) using SagaData(OrderBookId("BTCEUR"), e.order, if (e.order.buy) e.order.moneyAccount else e.order.productAccount, e.transactionId)
     }
   }
 
@@ -91,7 +91,7 @@ class PlaceOrderSaga(commandReceiver: ActorRef) extends Actor with LoggingFSM[St
     case WaitingForWithdrawal -> WaitingForOrderbook =>
       stateData match {
         case SagaData(orderBookId, order, accountId, transactionId) =>
-          commandReceiver ! ProcessOrder(orderBookId.get, transactionId, order)
+          commandReceiver ! ProcessOrder(orderBookId, transactionId, order)
         case _ =>
       }
     }

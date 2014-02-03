@@ -71,7 +71,7 @@ case class Myse(
   }
 
   def when(e: OrderPlaced): Myse = {
-    this
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse)
   }
 }
 

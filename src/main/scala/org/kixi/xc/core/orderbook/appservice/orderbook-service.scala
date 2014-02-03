@@ -120,7 +120,6 @@ class OrderBookActor(bridge: Props, eventHandler: ActorRef, orderBookId: OrderBo
       publishEvents(createAggregate(c))
     case msg: OrderBookCommand =>
       publishEvents(_.process(msg))
-      log.warning(s"Unknown message $msg")
   }
 
 
