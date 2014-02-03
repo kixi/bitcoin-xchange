@@ -49,7 +49,7 @@ import org.kixi.xc.core.common.CurrencyUnit
 import org.kixi.xc.core.orderbook.domain.LimitOrder
 import org.kixi.xc.core.account.domain.AccountId
 import org.kixi.xc.core.orderbook.domain.OrderBookId
-import org.kixi.xc.core.orderbook.domain.PlaceOrder
+import org.kixi.xc.core.orderbook.domain.ProcessOrder
 import org.kixi.xc.core.account.domain.TransactionId
 import org.kixi.xc.projections.LoggingProjection
 
@@ -182,7 +182,7 @@ class BuyCmd extends ConsoleCommand {
   override def cmdString = "buy"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(),
+    env.commandBus ! ProcessOrder(OrderBookId("BTCEUR"), TransactionId(),
       LimitOrder(OrderId(),
         new DateTime(),
         CurrencyUnit("BTC"),
@@ -199,7 +199,7 @@ class SellCmd extends ConsoleCommand {
   override def cmdString = "sell"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.commandBus ! PlaceOrder(OrderBookId("BTCEUR"), TransactionId(),
+    env.commandBus ! ProcessOrder(OrderBookId("BTCEUR"), TransactionId(),
       LimitOrder(OrderId(),
         new DateTime(),
         CurrencyUnit("BTC"),

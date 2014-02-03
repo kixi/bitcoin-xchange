@@ -43,10 +43,7 @@ import myeventstore.AppendEventsToStream
 import myeventstore.EventsLoaded
 import org.kixi.xc.core.orderbook.domain._
 import org.kixi.xc.core.orderbook.domain.CreateOrderBook
-import org.kixi.xc.core.orderbook.domain.ConfirmOrderPlacement
 import scala.Some
-import org.kixi.xc.core.orderbook.domain.PrepareOrderPlacement
-import org.kixi.xc.core.orderbook.domain.PlaceOrder
 
 object OrderBookService {
   def props(props: Props, handler: ActorRef) = Props(classOf[OrderBookService], props, handler)
@@ -123,7 +120,6 @@ class OrderBookActor(bridge: Props, eventHandler: ActorRef, orderBookId: OrderBo
       publishEvents(createAggregate(c))
     case msg: OrderBookCommand =>
       publishEvents(_.process(msg))
-      log.warning(s"Unknown message $msg")
   }
 
 

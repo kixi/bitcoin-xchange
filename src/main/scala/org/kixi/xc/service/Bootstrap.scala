@@ -35,7 +35,7 @@ import akka.actor.{Props, ActorSystem}
 import eventstore._
 import eventstore.tcp.ConnectionActor
 import scala.concurrent.duration._
-import org.kixi.xc.common.appservice.CommandBus
+import org.kixi.xc.common.appservice.CommandDispatcherActor
 import org.kixi.xc.core.account.appservice.AccountService
 import org.kixi.xc.core.orderbook.appservice.OrderBookService
 import org.kixi.myeventstore._
@@ -43,6 +43,7 @@ import org.kixi.xc.projections.{OrderCounterProjection, AccountProjection}
 import org.kixi.xc.core.sagas.{ProcessPaymentsSagaRouter, PlaceOrderSagaRouter}
 import eventstore.EventStream.All
 import java.net.InetSocketAddress
+import org.kixi.xc.core.myse.appservice.MyseService
 
 object Service {
   val log = Logger("Console")
@@ -75,7 +76,8 @@ object ServiceEnvironment {
 
   val accountProcessor = system.actorOf(AccountService.props(bridgeFake), "account-processor")
   val orderBookProcessor = system.actorOf(OrderBookService.props(bridgeFake, handler), "orderbook-processor")
-  val commandBus = system.actorOf(Props(classOf[CommandBus], accountProcessor, orderBookProcessor), "command-bus")
+  val myseService = system.actorOf(MyseService.props(bridgeFake))
+  val commandBus = system.actorOf(Props(classOf[CommandDispatcherActor], accountProcessor, orderBookProcessor, myseService), "command-bus")
   val accountView = system.actorOf(Props(classOf[AccountProjection]), "account-projection")
   val counter = system.actorOf(Props(classOf[OrderCounterProjection]), "order-counter-projection")
 

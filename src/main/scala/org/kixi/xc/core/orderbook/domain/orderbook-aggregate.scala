@@ -32,11 +32,9 @@ package org.kixi.xc.core.orderbook.domain
 
 import org.kixi.cqrslib.aggregate.{AggregateRoot, AggregateFactory, Identity}
 import org.kixi.xc.core.common._
-import scala.Some
 import org.kixi.xc.core.common.UnhandledEventException
 import org.kixi.xc.core.common.CurrencyUnit
 import org.kixi.xc.core.common.OrderExpiredException
-import org.kixi.xc.core.account.domain.TransactionId
 import scala.collection.immutable.TreeSet
 
 case class OrderBookId(id: String) extends Identity
@@ -71,7 +69,6 @@ case class OrderBook(
                       uncommittedEventsReverse: List[OrderBookEvent] = Nil,
                       version: Int = 0,
                       id: OrderBookId,
-                      preparedOrders: Map[OrderId, LimitOrder] = Map.empty[OrderId, LimitOrder],
                       buyOrders: TreeSet[Order] = TreeSet.empty(OrderOrdering),
                       sellOrders: TreeSet[Order] = TreeSet.empty(OrderOrdering),
                       currency: CurrencyUnit,
@@ -85,31 +82,9 @@ case class OrderBook(
   }
 
   def process(cmd: OrderBookCommand): OrderBook = cmd match {
-    case c: PlaceOrder =>
-      placeOrder(c.transactionId, c.order)
-    case c: PrepareOrderPlacement =>
-      prepareOrderPlacement(c.orderId, c.transactionId, c.order)
-    case c: ConfirmOrderPlacement =>
-      confirmOrderPlacement(c.orderId, c.transactionId)
-    case msg =>
-      throw new RuntimeException(s"Unknown message $msg")
-  }
-  def placeOrder(transactionId: TransactionId, order: LimitOrder): OrderBook = {
-    applyEvent(new OrderPlaced(id, transactionId, order))
-  }
-
-  def prepareOrderPlacement(orderId: OrderId, transactionId: TransactionId, order: LimitOrder) = {
-    applyEvent(new OrderPlacementPrepared(id, transactionId, orderId, order))
-  }
-
-  def confirmOrderPlacement(orderId: OrderId, transactionId: TransactionId) = {
-    preparedOrders.get(orderId) match {
-      case Some(order: Order) => {
-        applyEvent(new OrderPlacementConfirmed(id, transactionId, orderId)).
-          makeOrder(order)
-      }
-      case None => throw new RuntimeException("Order with ID " + orderId + " was not prepared and cannot be confirmed!")
-    }
+    case c: ProcessOrder =>
+      val ob = makeOrder(c.order)
+      ob.applyEvent(OrderProcessed(c.id, c.transactionId, c.order))
   }
 
   def cleanupFromExpiredOrders: OrderBook = {
@@ -207,25 +182,11 @@ case class OrderBook(
     case event: OrderAdjusted => when(event)
     case event: OrdersExecuted => when(event)
     case event: OrderExpired => when(event)
-    case event: OrderPlaced => when(event)
-    case event: OrderPlacementPrepared => when(event)
-    case event: OrderPlacementConfirmed => when(event)
+    case event: OrderProcessed => when(event)
     case event => throw new UnhandledEventException("Aggregate OrderBook does not handle event " + event)
   }
 
   def markCommitted = copy(uncommittedEventsReverse = Nil)
-
-  def when(event: OrderPlaced) = {
-    copy(event :: uncommittedEventsReverse)
-  }
-
-  def when(event: OrderPlacementPrepared) = {
-    copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders + (event.orderId -> event.order))
-  }
-
-  def when(event: OrderPlacementConfirmed) = {
-    copy(event :: uncommittedEventsReverse, preparedOrders = preparedOrders - event.orderId)
-  }
 
   def when(event: OrderQueued) = {
     if (event.order.buy)
@@ -258,6 +219,10 @@ case class OrderBook(
     } else {
       this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse, sellOrders = remove(sellOrders.tail, event.order))
     }
+  }
+
+  def when(event: OrderProcessed) = {
+    this.copy(uncommittedEventsReverse = event :: uncommittedEventsReverse)
   }
 
   def remove(orderList: TreeSet[Order], order: Order): TreeSet[Order] = {

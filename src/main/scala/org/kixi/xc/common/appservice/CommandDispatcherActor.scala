@@ -33,16 +33,23 @@ package org.kixi.xc.common.appservice
 import akka.actor.{ActorLogging, Actor, ActorRef}
 import org.kixi.xc.core.orderbook.domain.OrderBookCommand
 import org.kixi.xc.core.account.domain.AccountCommand
+import org.kixi.xc.core.myse.domain.MyseCommand
+import akka.event.LoggingReceive
 
 
-class CommandBus(accountProcessor: ActorRef, orderBookService: ActorRef) extends Actor with ActorLogging {
-  def receive = {
+class CommandDispatcherActor(
+                  accountProcessor: ActorRef, 
+                  orderBookService: ActorRef, 
+                  myseService: ActorRef)
+  extends Actor with ActorLogging {
+
+  def receive = LoggingReceive {
     case cmd: OrderBookCommand =>
-      log.debug("received " + cmd)
       orderBookService ! cmd
     case cmd: AccountCommand =>
-      log.debug("received " + cmd)
       accountProcessor ! cmd
+    case cmd: MyseCommand =>
+      myseService ! cmd
     case cmd =>
       log.warning("Received unknown command " + cmd)
   }

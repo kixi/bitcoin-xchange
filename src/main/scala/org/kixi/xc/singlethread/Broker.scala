@@ -44,7 +44,7 @@ import org.kixi.xc.core.orderbook.domain.OrderBookId
 import org.kixi.xc.core.account.domain.OpenAccount
 import scala.Some
 import org.kixi.xc.core.account.domain.DepositMoney
-import org.kixi.xc.core.orderbook.domain.PlaceOrder
+import org.kixi.xc.core.orderbook.domain.ProcessOrder
 
 /**
  * User: guenter
@@ -70,12 +70,12 @@ object Broker {
   def process(cmd: OrderBookCommand) = cmd match {
     case CreateOrderBook(orderBookId, currency, _) =>
       orderBooks.put(orderBookId, new OrderBookFactory().create(orderBookId, currency))
-    case PlaceOrder(orderBookId, transactionId, order, _) =>
+    case ProcessOrder(orderBookId, transactionId, order, _) =>
       val Some(orderBook) = orderBooks.get(orderBookId)
       val Some(account) = if (order.buy) accounts.get(order.moneyAccount) else accounts.get(order.productAccount)
       accounts.put(account.id,
-        if (order.buy) account.requestMoneyWithdrawal(transactionId, order.amount)
-        else account.requestMoneyWithdrawal(transactionId, Money(order.quantity, account.currency)))
+        if (order.buy) account.withdrawMoney(transactionId, order.amount)
+        else account.withdrawMoney(transactionId, Money(order.quantity, account.currency)))
 
       orderBooks.put(orderBook.id, orderBook.makeOrder(order))
   }
@@ -94,8 +94,8 @@ object SingleThread extends App {
   }
 
   for (count <- 0 to 100000) {
-    Broker.process(PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), 100, Money(100, CurrencyUnit("EUR")), Buy, AccountId(s"$count-EUR"), AccountId(s"$count-BTC"))))
-    Broker.process(PlaceOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), 100, Money(100, CurrencyUnit("EUR")), Sell, AccountId(s"$count-EUR"), AccountId(s"$count-BTC"))))
+    Broker.process(ProcessOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), 100, Money(100, CurrencyUnit("EUR")), Buy, AccountId(s"$count-EUR"), AccountId(s"$count-BTC"))))
+    Broker.process(ProcessOrder(OrderBookId("BTCEUR"), TransactionId(), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), 100, Money(100, CurrencyUnit("EUR")), Sell, AccountId(s"$count-EUR"), AccountId(s"$count-BTC"))))
   }
 
   System.out.println("finsihed in " + (System.currentTimeMillis() - start) + " ms")

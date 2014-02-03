@@ -34,9 +34,9 @@ import org.joda.time.DateTime
 import org.kixi.cqrslib.aggregate.{Identity, Event, Command}
 import org.kixi.xc.core.common.{Money, CurrencyUnit}
 
-trait AccountCommand extends Command[AccountId]
+sealed trait AccountCommand extends Command[AccountId]
 
-trait AccountEvent extends Event[AccountId]
+sealed trait AccountEvent extends Event[AccountId]
 
 case class OpenAccount(id: AccountId, currency: CurrencyUnit, timestamp: DateTime = new DateTime()) extends AccountCommand
 
@@ -50,20 +50,13 @@ case class MoneyDeposited(id: AccountId, amount: Money, timestamp: DateTime = ne
   def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
 }
 
-case class RequestMoneyWithdrawal(id: AccountId, transactionId: TransactionId, amount: Money, timestamp: DateTime = new DateTime()) extends AccountCommand
+case class WithdrawMoney(id: AccountId, transactionId: TransactionId, amount: Money, timestamp: DateTime = new DateTime()) extends AccountCommand
 
-case class MoneyWithdrawalRequested(id: AccountId, transactionId: TransactionId, amount: Money, timestamp: DateTime = new DateTime()) extends AccountEvent {
-  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
-}
-
-case class ConfirmMoneyWithdrawal(id: AccountId, transactionId: TransactionId, timestamp: DateTime = new DateTime()) extends AccountCommand
-
-case class MoneyWithdrawalConfirmed(id: AccountId, transactionId: TransactionId, timestamp: DateTime = new DateTime()) extends AccountEvent {
+case class MoneyWithdrawn(id: AccountId, transactionId: TransactionId, amount: Money, timestamp: DateTime = new DateTime()) extends AccountEvent {
   def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
 }
 
 case class BalanceChanged(id: AccountId, balance: Money, timestamp: DateTime = new DateTime()) extends AccountEvent {
   def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
 }
-
 

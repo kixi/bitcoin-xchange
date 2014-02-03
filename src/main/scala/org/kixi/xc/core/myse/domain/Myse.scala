@@ -28,49 +28,50 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.kixi.xc.projections
+package org.kixi.xc.core.myse.domain
 
-import akka.actor.Actor
-import org.joda.time.format.DateTimeFormat
+import org.kixi.cqrslib.aggregate.{AggregateRoot, Event, Identity, Command}
 import org.joda.time.DateTime
-import org.kixi.xc.core.orderbook.domain.{OrderProcessed, OrdersExecuted, OrderQueued}
-import org.kixi.xc.core.account.domain.{MoneyWithdrawn, MoneyDeposited}
+import org.kixi.xc.core.orderbook.domain.Order
+import java.util.UUID
+import org.kixi.xc.core.account.domain.TransactionId
 
-class OrderCounterProjection extends Actor {
-  var ordersQueued = 0
-  var ordersExecuted = 0
-  var deposits = 0
-  var withdrawals = 0
-  var placements = 0
+/**
+ * Created by centos on 2/2/14.
+ */
+case class MyseId(id: String) extends Identity
 
-  var total = 0
+sealed trait MyseCommand extends Command[MyseId]
+sealed trait MyseEvent extends Event[MyseId]
 
-  val displayAfter = 10000
+case class PlaceOrder(id: MyseId, order: Order, timestamp: DateTime = new DateTime()) extends MyseCommand
+case class OrderPlaced(id: MyseId, transactionId: TransactionId, order: Order, timestamp: DateTime = new DateTime()) extends MyseEvent {
+  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
+}
 
-  val fmt = DateTimeFormat.forPattern("HH:mm:ss:SSSS")
+case class Myse(
+  uncommittedEventsReverse: List[MyseEvent] = Nil,
+  version: Int = 0,
+  id: MyseId) extends AggregateRoot[Myse, MyseEvent, MyseId]{
 
-  def receive: Actor.Receive = {
-    case _: OrderQueued =>
-      log()
-      ordersQueued += 1
-    case _: OrdersExecuted =>
-      log()
-      ordersExecuted += 1
-    case _: MoneyDeposited =>
-      log()
-      deposits += 1
-    case _: MoneyWithdrawn =>
-      log()
-      withdrawals += 1
-    case _: OrderProcessed =>
-      log()
-      placements += 1
-    case _ =>
+  def loadedVersion(version: Int) = {
+    copy(version = version)
   }
 
-  def log() {
-    total += 1
-    if (total % displayAfter == 0)
-      System.out.println(fmt.print(new DateTime()) + " queued=" + ordersQueued + ", executed=" + ordersExecuted + ", deposits=" + deposits + ", withdrawals=" + withdrawals + ", placements=" + placements)
+  def markCommitted = copy(uncommittedEventsReverse = Nil)
+
+  def process(cmd: MyseCommand) = cmd match {
+    case PlaceOrder(id, order, ts) =>
+      applyEvent(OrderPlaced(id, TransactionId(), order))
+
+  }
+
+  override def applyEvent(e: MyseEvent): Myse = e match {
+    case msg: OrderPlaced => when(msg)
+  }
+
+  def when(e: OrderPlaced): Myse = {
+    copy(uncommittedEventsReverse = e :: uncommittedEventsReverse)
   }
 }
+

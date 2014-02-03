@@ -28,49 +28,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.kixi.xc.projections
+package org.kixi.xc.core.myse.appservice
 
-import akka.actor.Actor
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.DateTime
-import org.kixi.xc.core.orderbook.domain.{OrderProcessed, OrdersExecuted, OrderQueued}
-import org.kixi.xc.core.account.domain.{MoneyWithdrawn, MoneyDeposited}
+import akka.actor.{Props, Actor, ActorLogging}
+import org.kixi.xc.core.myse.domain.{MyseEvent, PlaceOrder, MyseId, Myse}
+import org.kixi.myeventstore.{StreamRevision, AppendEventsToStream}
+import org.kixi.cqrslib.aggregate.Event
 
-class OrderCounterProjection extends Actor {
-  var ordersQueued = 0
-  var ordersExecuted = 0
-  var deposits = 0
-  var withdrawals = 0
-  var placements = 0
+/**
+ * Created by centos on 2/2/14.
+ */
 
-  var total = 0
+object MyseService {
+  def props(bridge: Props) = Props(classOf[MyseService], bridge)
+}
+class MyseService(bridge: Props) extends Actor with ActorLogging{
+  var myse : Myse = new Myse(id = MyseId("MYSE"))
+  val bridgeActor = context.actorOf(bridge, "bridge-" + myse.id.id)
 
-  val displayAfter = 10000
-
-  val fmt = DateTimeFormat.forPattern("HH:mm:ss:SSSS")
-
-  def receive: Actor.Receive = {
-    case _: OrderQueued =>
-      log()
-      ordersQueued += 1
-    case _: OrdersExecuted =>
-      log()
-      ordersExecuted += 1
-    case _: MoneyDeposited =>
-      log()
-      deposits += 1
-    case _: MoneyWithdrawn =>
-      log()
-      withdrawals += 1
-    case _: OrderProcessed =>
-      log()
-      placements += 1
-    case _ =>
+  def receive = {
+    case cmd: PlaceOrder => {
+      myse = myse.process(cmd)
+      val events = myse.uncommittedEventsReverse.reverse
+      publish(events)
+    }
+  }
+  private def publish(events : List[MyseEvent]) {
+    bridgeActor ! AppendEventsToStream(myse.id.id, StreamRevision.NoConflict, events, None)
+    myse = myse.markCommitted
   }
 
-  def log() {
-    total += 1
-    if (total % displayAfter == 0)
-      System.out.println(fmt.print(new DateTime()) + " queued=" + ordersQueued + ", executed=" + ordersExecuted + ", deposits=" + deposits + ", withdrawals=" + withdrawals + ", placements=" + placements)
-  }
 }

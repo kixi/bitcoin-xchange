@@ -32,7 +32,7 @@ package org.kixi.xc.core.common
 
 import org.kixi.cqrslib.aggregate.{Identity, Event}
 import org.kixi.xc.core.orderbook.domain.{OrderBookEvent, OrderAdjusted, OrdersExecuted}
-import org.kixi.xc.core.account.domain.{MoneyWithdrawalRequested, MoneyDeposited}
+import org.kixi.xc.core.account.domain.{MoneyWithdrawn, MoneyDeposited}
 
 /**
  * User: guenter
@@ -53,8 +53,8 @@ object ConflictHandler {
     case (_, a: OrdersExecuted) => true
     case (_, a: OrderAdjusted) => true
     case (c: OrderBookEvent, a: OrderBookEvent) => false
-    case (_: MoneyDeposited, _: MoneyWithdrawalRequested) => true
-    case (_: MoneyWithdrawalRequested, _: MoneyDeposited) => true
+    case (_: MoneyDeposited, _: MoneyWithdrawn) => true
+    case (_: MoneyWithdrawn, _: MoneyDeposited) => true
 
     case (c, a) => (c.getClass == a.getClass) && (c.id == a.id)
   }

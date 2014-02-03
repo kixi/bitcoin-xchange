@@ -104,10 +104,8 @@ case class AccountState(accountId: AccountId, aggregate: Option[Account] = None)
   def processAlter(cmd: AccountCommand, account: Account): Account = cmd match {
     case cmd: DepositMoney =>
       account.depositMoney(cmd.amount)
-    case cmd: RequestMoneyWithdrawal =>
-      account.requestMoneyWithdrawal(cmd.transactionId, cmd.amount)
-    case cmd: ConfirmMoneyWithdrawal =>
-      account.confirmMoneyWithdrawal(cmd.transactionId)
+    case cmd: WithdrawMoney =>
+      account.withdrawMoney(cmd.transactionId, cmd.amount)
   }
 
   def publish(publishFunction: (String, List[AccountEvent]) => Unit): AccountState = {
