@@ -47,6 +47,7 @@ import org.kixi.xc.core.orderbook.domain.ProcessOrder
 import org.kixi.xc.core.account.domain.MoneyDeposited
 import org.kixi.xc.core.account.domain.AccountOpened
 import org.kixi.xc.core.myse.domain.{MyseId, PlaceOrder}
+import java.util.Random
 
 /**
  * User: guenter
@@ -96,7 +97,7 @@ class User(commandBus: ActorRef, userId: Int) extends Actor {
       val limit = 100.0 //+ new Random().nextDouble()
     val quantity = (amount.amount / limit).setScale(0, BigDecimal.RoundingMode.HALF_DOWN)
       if (quantity > 0)
-        commandBus ! PlaceOrder(MyseId("MYSE"), LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), quantity, Money(BigDecimal(limit).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Buy, eurAcc, btcAcc))
+        commandBus ! PlaceOrder(MyseId("MYSE"),  LimitOrder(OrderId(), new DateTime(), CurrencyUnit("BTC"), quantity, Money(BigDecimal(limit).setScale(2, BigDecimal.RoundingMode.DOWN), CurrencyUnit("EUR")), Buy, eurAcc, btcAcc))
     case msg => System.out.println("Unexpected message: " + msg)
   }
 }

@@ -119,7 +119,7 @@ object ConsoleEnvironment {
     //   val remotePath =
     //     "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
     //   val commandBus = system.actorOf(Props(new LookupActor(remotePath)), "commandbus-client")
-    val commandBus = ServiceEnvironment.commandBus
+    val commandBus = ServiceEnvironment.commandDispatcher
     val eventHandler = ServiceEnvironment.handler
 
     ConsoleEnvironment(commandBus)

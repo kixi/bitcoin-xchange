@@ -74,17 +74,15 @@ object ServiceEnvironment {
  // val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor)
   val bridgeFake = FakeEventStoreBridgeActor.props(handler)
 
-  val accountProcessor = system.actorOf(AccountService.props(bridgeFake), "account-processor")
-  val orderBookProcessor = system.actorOf(OrderBookService.props(bridgeFake, handler), "orderbook-processor")
-  val myseService = system.actorOf(MyseService.props(bridgeFake))
-  val commandBus = system.actorOf(Props(classOf[CommandDispatcherActor], accountProcessor, orderBookProcessor, myseService), "command-bus")
+  val commandDispatcher = system.actorOf(CommandDispatcherActor.props(gyHandler), "command-bus")
+
   val accountView = system.actorOf(Props(classOf[AccountProjection]), "account-projection")
   val counter = system.actorOf(Props(classOf[OrderCounterProjection]), "order-counter-projection")
 
   def buildEnvironment() {
     //   handler ! SubscribeMsg(accountView, (x) => true)
-    handler ! SubscribeMsg(system.actorOf(Props(classOf[PlaceOrderSagaRouter], commandBus), "place-order-saga-router"), (x) => true)
-    handler ! SubscribeMsg(system.actorOf(Props(classOf[ProcessPaymentsSagaRouter], commandBus), "process-payments-saga-router"), (x) => true)
+    handler ! SubscribeMsg(system.actorOf(Props(classOf[PlaceOrderSagaRouter], commandDispatcher), "place-order-saga-router"), (x) => true)
+    handler ! SubscribeMsg(system.actorOf(Props(classOf[ProcessPaymentsSagaRouter], commandDispatcher), "process-payments-saga-router"), (x) => true)
   }
 }
 

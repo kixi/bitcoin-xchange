@@ -42,7 +42,7 @@ object Dependencies {
   val akkaRemote = "com.typesafe.akka" %% "akka-remote" % akkaVersion
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-  val akkaAtmos = "com.typesafe.atmos" % "trace-akka-2.2.0_2.10" % "1.2.0"
+  val akkaAtmos = "com.typesafe.sbt" %% "sbt-atmos" % "0.3.2"
   val logback = "ch.qos.logback" % "logback-classic" % "1.0.7"
 
   val metrics = "com.yammer.metrics" % "metrics-core" % "2.1.2"

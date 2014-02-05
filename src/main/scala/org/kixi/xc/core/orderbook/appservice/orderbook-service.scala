@@ -31,25 +31,30 @@
 package org.kixi.xc.core.orderbook.appservice
 
 import akka.actor._
-import org.kixi.myeventstore
-import myeventstore._
 import scala.collection.immutable.Queue
 import com.typesafe.config.Config
 import akka.dispatch.{PriorityGenerator, UnboundedPriorityMailbox}
-import myeventstore.LoadEventStream
-import myeventstore.EventsConflicted
-import myeventstore.EventsCommitted
-import myeventstore.AppendEventsToStream
-import myeventstore.EventsLoaded
 import org.kixi.xc.core.orderbook.domain._
 import org.kixi.xc.core.orderbook.domain.CreateOrderBook
 import scala.Some
+import eventstore._
+import akka.actor.Status.Failure
+import org.kixi.xc.core.orderbook.domain.OrderBook
+import eventstore.ReadStreamEventsCompleted
+import org.kixi.xc.core.orderbook.domain.CreateOrderBook
+import akka.actor.Status.Failure
+import scala.Some
+import eventstore.ReadStreamEvents
+import eventstore.EsException
+import org.kixi.xc.core.orderbook.domain.OrderBookId
+import org.kixi.myeventstore.JavaSerializer
+import java.util.UUID
 
 object OrderBookService {
-  def props(props: Props, handler: ActorRef) = Props(classOf[OrderBookService], props, handler)
+  def props(eventPublisher: ActorRef) = Props(classOf[OrderBookService], eventPublisher)
 }
 
-class OrderBookService(props: Props, handler: ActorRef) extends Actor with ActorLogging {
+class OrderBookService(eventPublisher: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
     case cmd: OrderBookCommand => {
@@ -61,32 +66,35 @@ class OrderBookService(props: Props, handler: ActorRef) extends Actor with Actor
   }
 
   private def createActor(cmdId: OrderBookId) = {
-    val actor = context.actorOf(OrderBookActor.props(props, handler, cmdId), cmdId.id)
+    val actor = context.actorOf(OrderBookActor.props(eventPublisher, cmdId), cmdId.id)
     context.watch(actor)
     actor
   }
 }
 
 object OrderBookActor {
-  def props(props: Props, handler: ActorRef, orderBookId: OrderBookId) = Props(classOf[OrderBookActor], props, handler, orderBookId)
+  def props(eventPublisher: ActorRef, orderBookId: OrderBookId) = Props(classOf[OrderBookActor], eventPublisher, orderBookId)
 }
 
-class OrderBookActor(bridge: Props, eventHandler: ActorRef, orderBookId: OrderBookId) extends Actor with ActorLogging {
+class OrderBookActor(eventPublisher: ActorRef, orderBookId: OrderBookId) extends Actor with ActorLogging {
 
   var aggregate: Option[OrderBook] = None
-  val bridgeActor = context.actorOf(bridge, "bridge-" + aggregateId)
 
   override def preStart() = {
     log.debug("restoring aggregate")
-    bridgeActor ! LoadEventStream(aggregateId, None)
+    eventPublisher ! ReadStreamEvents(EventStream(aggregateId))
   }
 
   def receive = loading()
 
   def loading(stash: Queue[(ActorRef, Any)] = Queue()): Receive = {
-    case msg: EventsLoaded[OrderBookEvent] =>
-      aggregate = restoreAggregate(msg)
+    case msg: ReadStreamEventsCompleted =>
+      aggregate = restoreAggregate(msg.events)
       log.debug(s"aggregate restored $aggregate")
+      context become running
+      processStash(stash)
+    case Failure(e: EsException) =>
+      log.error(s"aggregate not restored", e)
       context become running
       processStash(stash)
     case command =>
@@ -96,15 +104,19 @@ class OrderBookActor(bridge: Props, eventHandler: ActorRef, orderBookId: OrderBo
 
   private def processStash(stash: Queue[(ActorRef, Any)]) {
     for ((s, cmd) <- stash) {
-      self.tell(cmd, sender = s)
+      self.tell(cmd, s)
     }
   }
 
-  private def restoreAggregate(msg: EventsLoaded[OrderBookEvent]): Option[OrderBook] = {
-    if (msg.stream.streamVersion != StreamRevision.Initial)
-      Some(new OrderBookFactory().restoreFromHistory(msg.stream.events.asInstanceOf[List[OrderBookEvent]]))
-    else
+  private def restoreAggregate(events: List[Event]): Option[OrderBook] = events match {
+    case Nil =>
       None
+    case e =>
+      Some(new OrderBookFactory().restoreFromHistory(
+        (for (evt <- e) yield {
+          val bytes = evt.data.data.value.toArray
+          JavaSerializer.readObject(bytes).asInstanceOf[OrderBookEvent]
+        }).toList))
   }
 
   private def createAggregate(c: CreateOrderBook): OrderBook = {
@@ -122,53 +134,35 @@ class OrderBookActor(bridge: Props, eventHandler: ActorRef, orderBookId: OrderBo
       publishEvents(_.process(msg))
   }
 
-
-  def waiting4Commit(stash: Queue[(ActorRef, Any)] = Queue()): Receive = {
-    case EventsCommitted(commit) =>
-      log.debug(s"Events committed: $commit")
+  def publishing(stash: Queue[(ActorRef, Any)] = Queue(), orderBook: OrderBook): Receive = {
+    case msg: WriteEventsCompleted =>
+      aggregate = Some(orderBook)
       context become running
       processStash(stash)
-    case EventsConflicted(conflict, backback) =>
-    case command =>
-      val newqueue = stash enqueue (sender -> command)
-      val size = newqueue.size
-      log.debug(s"Command arrived while waiting for event store confirmation - stash size: $size command $command")
-      context become waiting4Commit(newqueue)
+    case Failure(e: EsException) =>
+      log.error("Error publishing events ", e)
+      context become running
+      processStash(stash)
+    case msg =>
+      context become publishing (stash enqueue (sender -> msg), orderBook)
   }
 
   private def publishEvents(f: OrderBook => OrderBook) {
-    aggregate = Some(f(aggregate.get))
-    publish()
+    publish(f(aggregate.get))
   }
 
   private def publishEvents(f: => OrderBook) {
-    aggregate = Some(f)
-    publish()
+    publish(f)
   }
 
-  private def publish() {
-    bridgeActor ! AppendEventsToStream(orderBookId.id, StreamRevision.NoConflict, aggregate.get.uncommittedEventsReverse.reverse, None)
-    //  implicit val timeout = Timeout(5000)
-    //  Await.result((eventStore ? AppendEventsToStream(orderBookId.toString, StreamRevision.NoConflict,orderBook.get.uncommittedEventsReverse.reverse, None )), timeout.duration)
-    aggregate = Some(aggregate.get.markCommitted)
-    //   context become waiting4Confirmation()
+  private def publish(orderBook: OrderBook) {
+    val events = {
+      for (e <- aggregate.get.uncommittedEventsReverse.reverse)  yield {
+        val bytes = JavaSerializer.writeObject(e)
+        EventData("OrderBook", UUID.randomUUID(), Content(bytes))
+      }
+    }.toList
+    eventPublisher ! WriteEvents(EventStream(aggregateId), events)
+    context become(publishing(Queue(), orderBook.markCommitted))
   }
-
 }
-
-
-class AggregateActorPrioMailbox[E](settings: ActorSystem.Settings, config: Config)
-  extends UnboundedPriorityMailbox(
-    // Create a new PriorityGenerator, lower prio means more important
-    PriorityGenerator {
-      // 'highpriority messages should be treated first if possible
-      case msg: EventsCommitted[E] => 0
-
-      case msg: EventsConflicted[E] => 0
-
-      // PoisonPill when no other left
-      case PoisonPill => 3
-
-      // We default to 1, which is in between high and low
-      case otherwise => 1
-    })

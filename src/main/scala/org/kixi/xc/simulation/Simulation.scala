@@ -80,7 +80,7 @@ object SimulationEnvironment {
     val system = ActorSystem("bitcoin-xchange") //, ConfigFactory.load.getConfig("bitcoin-xchange-client"))
     //    val remotePathCommandBus = "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/command-bus"
     //    val remotePathEventHandler = "akka.tcp://bitcoin-xchange@127.0.0.1:2552/user/event-handler"
-    val commandBus = ServiceEnvironment.commandBus
+    val commandBus = ServiceEnvironment.commandDispatcher
     val eventHandler = ServiceEnvironment.handler
     //    val commandBus = system.actorOf(Props(new LookupActor(remotePathCommandBus)), "commandbus-client")
     //    val eventHandler = system.actorOf(Props(new LookupActor(remotePathEventHandler)), "event-handler-client")
@@ -90,7 +90,7 @@ object SimulationEnvironment {
     commandBus ! CreateOrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))
     Thread.sleep(100)
     val users =
-      for (userId <- 0 to 9) yield {
+      for (userId <- 0 to 99) yield {
         val user = system.actorOf(Props(classOf[User], commandBus, userId), "sim-user-" + userId)
         val accBtcId = AccountId(userId + "-BTC")
         val accEurId = AccountId(userId + "-EUR")
