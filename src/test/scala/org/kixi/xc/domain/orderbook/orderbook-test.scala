@@ -35,7 +35,6 @@ import org.joda.time.DateTime
 import org.kixi.xc.core.orderbook.domain._
 import org.kixi.xc.core.orderbook.domain.OrderAdjusted
 import org.kixi.xc.core.orderbook.domain.OrderBook
-import org.kixi.xc.core.orderbook.domain.OrderBookCreated
 import org.kixi.xc.core.common.CurrencyUnit
 import org.kixi.xc.core.orderbook.domain.OrderQueued
 import org.kixi.xc.core.orderbook.domain.OrdersExecuted
@@ -51,10 +50,7 @@ class OrderBook_T1 extends OrderBookTest {
   val now = new DateTime()
 
   test("place buy limit order in empty orderbook") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
-        Nil
-    }
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) { Nil }
 
     when {
       ob: OrderBook => ob.makeOrder(LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")))
@@ -71,10 +67,7 @@ class OrderBook_T2 extends OrderBookTest {
   val now = new DateTime()
 
   test("place sell limit order in empty orderbook") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
-        Nil
-    }
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {Nil}
 
     when {
       ob: OrderBook => ob.makeOrder(LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")))
@@ -91,10 +84,7 @@ class OrderBook_T3 extends OrderBookTest {
   val now = new DateTime()
 
   test("place buy market order in empty orderbook") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
-        Nil
-    }
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {Nil}
 
     when {
       ob: OrderBook => ob.makeOrder(MarketOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")))
@@ -111,10 +101,7 @@ class OrderBook_T4 extends OrderBookTest {
   val now = new DateTime()
 
   test("place buy market order in empty orderbook") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
-        Nil
-    }
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) { Nil }
 
     when {
       ob: OrderBook => ob.makeOrder(MarketOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC")))
@@ -132,8 +119,7 @@ class OrderBook_T5 extends OrderBookTest {
   val now = new DateTime()
 
   test("place second buy limit order in orderbook with 1 buy order") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -153,8 +139,7 @@ class OrderBook_T6 extends OrderBookTest {
   val now = new DateTime()
 
   test("place second sell limit order in orderbook with 1 sell order") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -174,8 +159,7 @@ class OrderBook_T7_1 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -199,8 +183,7 @@ class OrderBook_T7_2 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount - sell order is no longer in orderbook") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -226,8 +209,7 @@ class OrderBook_T7_3 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount - buy order is no longer in orderbook") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -254,8 +236,7 @@ class OrderBook_T8_1 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -279,8 +260,7 @@ class OrderBook_T8_2 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount - sell order is no longer in orderbook") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -306,8 +286,7 @@ class OrderBook_T8_3 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount - buy order is no longer in orderbook") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -333,8 +312,7 @@ class OrderBook_T9_1 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -358,8 +336,7 @@ class OrderBook_T9_2 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
           LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
@@ -385,8 +362,7 @@ class OrderBook_T9_3 extends OrderBookTest {
   val now = new DateTime()
 
   test("buy order for existing sell order which match with quantity and amount") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrdersExecuted(OrderBookId("BTCEUR"),
           LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC")),
@@ -413,8 +389,7 @@ class OrderBook_T10 extends OrderBookTest {
   val now = new DateTime()
 
   test("take highest bid for limit orders") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now, CurrencyUnit("BTC"), 5.0, Money(110, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now, CurrencyUnit("BTC"), 5.0, Money(111, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
@@ -445,8 +420,7 @@ class OrderBook_T11 extends OrderBookTest {
   val now = new DateTime()
 
   test("take lowest ask for limit orders") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now, CurrencyUnit("BTC"), 5.0, Money(110, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now, CurrencyUnit("BTC"), 5.0, Money(111, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
@@ -477,8 +451,7 @@ class OrderBook_T12 extends OrderBookTest {
   val now = new DateTime()
 
   test("take market order over limit orders for bids") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now, CurrencyUnit("BTC"), 5.0, Money(110, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now, CurrencyUnit("BTC"), 5.0, Money(111, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
@@ -509,8 +482,7 @@ class OrderBook_T13 extends OrderBookTest {
   val now = new DateTime()
 
   test("take market order over limit orders for asks") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now, CurrencyUnit("BTC"), 5.0, Money(110, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now, CurrencyUnit("BTC"), 5.0, Money(111, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
@@ -541,8 +513,7 @@ class OrderBook_T14 extends OrderBookTest {
   val now = new DateTime()
 
   test("take oldest market order for asks") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), MarketOrder(OrderId("1"), now.minusMillis(123), CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), MarketOrder(OrderId("2"), now.minusMillis(1243), CurrencyUnit("BTC"), 5.0, Money(110, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), MarketOrder(OrderId("3"), now.minusMillis(1343), CurrencyUnit("BTC"), 5.0, Money(111, CurrencyUnit("EUR")), Sell, AccountId("1-EUR"), AccountId("1-BTC"))) ::
@@ -573,8 +544,7 @@ class OrderBook_T15 extends OrderBookTest {
   val now = new DateTime()
 
   test("take oldest market order  for bids") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), MarketOrder(OrderId("1"), now.minusMillis(123), CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), MarketOrder(OrderId("2"), now.minusMillis(435), CurrencyUnit("BTC"), 5.0, Money(110, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), MarketOrder(OrderId("3"), now.minusMillis(54), CurrencyUnit("BTC"), 5.0, Money(111, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
@@ -605,8 +575,7 @@ class OrderBook_T16 extends OrderBookTest {
   val now = new DateTime()
 
   test("order in order book has higher quantity than new order ") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 5.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -630,8 +599,7 @@ class OrderBook_T17 extends OrderBookTest {
   val now = new DateTime()
 
   test("order in order book has lower quantity than new order") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         Nil
     }
@@ -655,8 +623,7 @@ class OrderBook_T18 extends OrderBookTest {
   val now = new DateTime()
 
   test("order in order book has lower quantity than new order") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now, CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now.plus(1), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now.plus(2), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
@@ -700,8 +667,7 @@ class OrderBook_T19 extends OrderBookTest {
   val now = new DateTime()
 
   test("order in order book has higher quantity than new order order gets crossed and quened") {
-    given(new OrderBookFactory()) {
-      OrderBookCreated(OrderBookId("BTCEUR"), CurrencyUnit("EUR")) ::
+    given(OrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR"))) {
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("1"), now.plus(1), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("2"), now.plus(2), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::
         OrderQueued(OrderBookId("BTCEUR"), LimitOrder(OrderId("3"), now.plus(3), CurrencyUnit("BTC"), 1.0, Money(100, CurrencyUnit("EUR")), Buy, AccountId("1-EUR"), AccountId("1-BTC"))) ::

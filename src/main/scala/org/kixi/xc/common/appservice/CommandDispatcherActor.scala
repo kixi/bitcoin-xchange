@@ -32,12 +32,8 @@ package org.kixi.xc.common.appservice
 
 import akka.actor.{Props, ActorLogging, Actor, ActorRef}
 import org.kixi.xc.core.orderbook.domain.OrderBookCommand
-import org.kixi.xc.core.account.domain.AccountCommand
-import org.kixi.xc.core.myse.domain.MyseCommand
 import akka.event.LoggingReceive
-import org.kixi.xc.core.account.appservice.AccountService
-import org.kixi.xc.core.orderbook.appservice.OrderBookService
-import org.kixi.xc.core.myse.appservice.MyseService
+import org.kixi.xc.core.orderbook.actors.OrderBookService
 
 object CommandDispatcherActor {
   def props(eventPublisher: ActorRef) =
@@ -48,18 +44,10 @@ class CommandDispatcherActor(
                   eventPublisher: ActorRef)
   extends Actor with ActorLogging {
 
-//  val accountService = context.actorOf(AccountService.props(eventPublisher), "account-service")
   val orderBookService = context.actorOf(OrderBookService.props(eventPublisher), "orderbook-service")
-//  val myseService = context.actorOf(MyseService.props(eventPublisher), "myse-service")
 
   def receive = LoggingReceive {
     case cmd: OrderBookCommand =>
       orderBookService ! cmd
-//    case cmd: AccountCommand =>
-//      accountProcessor ! cmd
-//    case cmd: MyseCommand =>
-//      myseService ! cmd
-    case cmd =>
-      log.warning("Received unknown command " + cmd)
   }
 }

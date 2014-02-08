@@ -32,7 +32,7 @@ import sbt._
 
 object Dependencies {
   // versions
-  val akkaVersion = "2.2.1"
+  val akkaVersion = "2.3.0-RC2"
 
   // libraries
   val scalaTest = "org.scalatest" %% "scalatest" % "1.9.1"
@@ -42,7 +42,7 @@ object Dependencies {
   val akkaRemote = "com.typesafe.akka" %% "akka-remote" % akkaVersion
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-  val akkaAtmos = "com.typesafe.sbt" %% "sbt-atmos" % "0.3.2"
+  val akkaPersistence = "com.typesafe.akka" %% "akka-persistence-experimental" % akkaVersion
   val logback = "ch.qos.logback" % "logback-classic" % "1.0.7"
 
   val metrics = "com.yammer.metrics" % "metrics-core" % "2.1.2"
@@ -57,11 +57,12 @@ object Dependencies {
     akkaActor,
     akkaRemote,
     akkaSlf4j,
+    akkaPersistence,
     akkaTestkit % "test",
+    eventstore,
     jodaTime,
     jodaConvert,
     logback,
-    eventstore,
     metrics
   )
 }

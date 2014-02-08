@@ -37,7 +37,6 @@ import org.kixi.xc.core.account.domain._
 import org.kixi.xc.core.orderbook.domain.OrderBook
 import org.kixi.xc.core.account.domain.Account
 import org.kixi.xc.core.common.CurrencyUnit
-import org.kixi.xc.core.orderbook.domain.CreateOrderBook
 import org.kixi.xc.core.account.domain.AccountId
 import org.kixi.xc.core.common.Money
 import org.kixi.xc.core.orderbook.domain.OrderBookId
@@ -68,8 +67,6 @@ object Broker {
   }
 
   def process(cmd: OrderBookCommand) = cmd match {
-    case CreateOrderBook(orderBookId, currency, _) =>
-      orderBooks.put(orderBookId, new OrderBookFactory().create(orderBookId, currency))
     case ProcessOrder(orderBookId, transactionId, order, _) =>
       val Some(orderBook) = orderBooks.get(orderBookId)
       val Some(account) = if (order.buy) accounts.get(order.moneyAccount) else accounts.get(order.productAccount)
@@ -84,7 +81,6 @@ object Broker {
 
 object SingleThread extends App {
   val start = System.currentTimeMillis
-  Broker.process(CreateOrderBook(OrderBookId("BTCEUR"), CurrencyUnit("EUR")))
   for (count <- 0 to 100000) {
     Broker.process(OpenAccount(AccountId(s"$count-EUR"), CurrencyUnit("EUR")))
     Broker.process(DepositMoney(AccountId(s"$count-EUR"), Money(10000, CurrencyUnit("EUR"))))

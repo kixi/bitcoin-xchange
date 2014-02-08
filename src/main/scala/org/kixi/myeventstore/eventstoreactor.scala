@@ -35,10 +35,6 @@ import akka.dispatch.{PriorityGenerator, UnboundedPriorityMailbox}
 import com.typesafe.config.Config
 import java.util.UUID
 import akka.util.ByteString
-import eventstore._
-import eventstore.ReadStreamEvents
-import eventstore.EventStream.Id
-import eventstore.ExpectedVersion.Any
 import scala.Any
 
 case class EventStream[E](events: List[E], streamVersion: StreamRevision)
@@ -89,47 +85,6 @@ class EventStoreActor[+E](eventHandler: ActorRef, store: EventStore[E]) extends 
       val events = store.loadEventStream(streamId)
       log.debug("events readed from store - stream id={} - events: {}", streamId, events)
       sender ! EventsLoaded(EventStream(events, StreamRevision(events.size)), boomerang)
-  }
-}
-
-object GYEventStoreBridgeActor {
-  def props(eventStore: ActorRef): Props = {
-    Props(classOf[GYEventStoreBridgeActor], eventStore)
-  }
-}
-
-class GYEventStoreBridgeActor(eventStore: ActorRef) extends Actor with ActorLogging {
-
-  def receive = {
-    case msg@AppendEventsToStream(streamId, version, events, boomerang) =>
-      log.debug("trying to commit to event store: {}", msg)
-      val eventList =
-        for (evt <- events) yield {
-          val streamMetadata = ByteString(evt.getClass.getSimpleName)
-          EventData("testtype", UUID.randomUUID(),  Content(ByteString(JavaSerializer.writeObject(evt))))
-        }
-      eventStore ! WriteEvents(Id(streamId), eventList)
-    case LoadEventStream(streamId, boomerang) =>
-      log.debug("Read events from store - stream id=" + streamId)
-      eventStore ! ReadStreamEvents(Id(streamId), EventNumber.First, MaxBatchSize, ReadDirection.Forward)
-
-    case ReadStreamEventsCompleted(events, _, _, _, _, _) =>
-      if (!events.isEmpty) {
-        val streamId = events.head.streamId
-        val evts =
-          (for (e <- events) yield {
-            val eventData = e.data
-            val bytes = eventData.data.value.toArray
-            JavaSerializer.readObject(bytes)
-          }).toList
-        context.parent ! EventsLoaded(EventStream(evts, StreamRevision(evts.size)), None)
-      }
-    case msg @ ReadStreamEventsCompleted(events, _, _, _, _, _ ) =>
-      context.parent ! EventsLoaded(EventStream(Nil, StreamRevision(0)), None)
-    case msg: WriteEventsCompleted =>
-      context.parent ! "committed"
-    case cmd =>
-      log.error(s"unknown command $cmd")
   }
 }
 

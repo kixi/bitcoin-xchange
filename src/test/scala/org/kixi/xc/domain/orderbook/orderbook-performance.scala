@@ -47,7 +47,7 @@ class OrderBookPerf extends FunSuite {
   val now = new DateTime()
 
   test("performance") {
-    var book = new OrderBookFactory().create(OrderBookId("EURBTC"), CurrencyUnit("EUR")).markCommitted
+    var book = OrderBook(OrderBookId("EURBTC"), CurrencyUnit("EUR"))
     val p = Random.nextInt(100)+1
     val q = Random.nextInt(100)+1
     val buysell = if (Random.nextBoolean())

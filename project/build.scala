@@ -30,7 +30,6 @@
 
 import sbt._
 import Keys._
-import com.typesafe.sbt.SbtAtmos.{ Atmos, atmosSettings }
 
 object build extends Build {
   lazy val basicSettings = Seq(
@@ -43,6 +42,7 @@ object build extends Build {
     libraryDependencies ++= Dependencies.xchangeService
   )
 
-  lazy val root = Project("xchange", file("."), settings = basicSettings ++ Defaults.defaultSettings).configs(Atmos)
-    .settings(atmosSettings: _*)
+  lazy val root = Project("xchange", file("."), settings = basicSettings ++ Defaults.defaultSettings)
+
+
 }

@@ -32,18 +32,10 @@ package org.kixi.xc.service
 
 import com.weiglewilczek.slf4s.Logger
 import akka.actor.{Props, ActorSystem}
-import eventstore._
-import eventstore.tcp.ConnectionActor
-import scala.concurrent.duration._
 import org.kixi.xc.common.appservice.CommandDispatcherActor
-import org.kixi.xc.core.account.appservice.AccountService
-import org.kixi.xc.core.orderbook.appservice.OrderBookService
 import org.kixi.myeventstore._
 import org.kixi.xc.projections.{OrderCounterProjection, AccountProjection}
 import org.kixi.xc.core.sagas.{ProcessPaymentsSagaRouter, PlaceOrderSagaRouter}
-import eventstore.EventStream.All
-import java.net.InetSocketAddress
-import org.kixi.xc.core.myse.appservice.MyseService
 
 object Service {
   val log = Logger("Console")
@@ -62,19 +54,9 @@ object Service {
 
 object ServiceEnvironment {
   val system = ActorSystem("bitcoin-xchange")
-  //,  ConfigFactory.load.getConfig("bitcoin-xchange"))
-  val handler = system.actorOf(Props(classOf[AkkaEventHandler]), "event-handler")
-  val gyHandler = system.actorOf(GYEventStoreHandler.props(handler))
 
-//  val eventStoreActor = system.actorOf(Props(classOf[ConnectionActor], Settings(
-//    address = new InetSocketAddress("192.168.56.1", 1113),
-//    heartbeatTimeout = 20.seconds)), "event-store")
-//  eventStoreActor.tell(SubscribeTo(All), gyHandler)
-  // val accountProcessor = system.actorOf(Props(new AccountProcessor(eventStoreActor)), "account-processor" )
- // val bridgeGY = GYEventStoreBridgeActor.props(eventStoreActor)
-  val bridgeFake = FakeEventStoreBridgeActor.props(handler)
-
-  val commandDispatcher = system.actorOf(CommandDispatcherActor.props(gyHandler), "command-bus")
+  val handler = system.actorOf(Props(classOf[AkkaEventHandler]), "event-bus")
+  val commandDispatcher = system.actorOf(CommandDispatcherActor.props(handler), "command-bus")
 
   val accountView = system.actorOf(Props(classOf[AccountProjection]), "account-projection")
   val counter = system.actorOf(Props(classOf[OrderCounterProjection]), "order-counter-projection")

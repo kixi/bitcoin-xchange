@@ -42,12 +42,6 @@ sealed trait OrderBookCommand extends Command[OrderBookId]
 sealed trait OrderBookEvent extends Event[OrderBookId]
 
 
-case class CreateOrderBook(id: OrderBookId, currency: CurrencyUnit, timestamp: DateTime = new DateTime()) extends OrderBookCommand
-
-case class OrderBookCreated(id: OrderBookId, currency: CurrencyUnit, timestamp: DateTime = new DateTime()) extends OrderBookEvent {
-  def hasSameContentAs[B <: Identity](other: Event[B]): Boolean = other == this.copy(timestamp = other.timestamp)
-}
-
 case class ProcessOrder(id: OrderBookId, transactionId: TransactionId, order: Order, timestamp: DateTime = new DateTime()) extends OrderBookCommand
 
 case class OrderProcessed(id: OrderBookId, transactionId: TransactionId, order: Order, timestamp: DateTime = new DateTime()) extends OrderBookEvent {

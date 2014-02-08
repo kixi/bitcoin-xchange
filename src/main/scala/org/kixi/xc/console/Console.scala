@@ -37,7 +37,6 @@ import org.joda.time.DateTime
 import org.kixi.xc.core.orderbook.domain._
 import org.kixi.xc.service.ServiceEnvironment
 import org.kixi.xc.core.orderbook.domain.OrderId
-import org.kixi.xc.core.orderbook.domain.CreateOrderBook
 import org.kixi.xc.core.common.Money
 import org.kixi.xc.core.account.domain.OpenAccount
 import akka.actor.ActorIdentity
@@ -53,18 +52,16 @@ import org.kixi.xc.core.orderbook.domain.ProcessOrder
 import org.kixi.xc.core.account.domain.TransactionId
 import org.kixi.xc.projections.LoggingProjection
 
-object Console {
+object XCConsole{
   val log = Logger("Console")
 
   def main(args: Array[String]) {
     log.info("Starting bitcoin-exchange console ...")
 
     ServiceEnvironment.buildEnvironment()
-    ServiceEnvironment.handler ! SubscribeMsg(ServiceEnvironment.system.actorOf(Props(new LoggingProjection()), "logging-projection"), (x) => true)
+   // ServiceEnvironment.handler ! SubscribeMsg(ServiceEnvironment.system.actorOf(Props(new LoggingProjection()), "logging-projection"), (x) => true)
 
     val env = ConsoleEnvironment.buildEnvironment
-
-    val cons = System.console()
 
     Thread.sleep(500)
 
@@ -81,14 +78,14 @@ object Console {
     while (true) {
       Thread.sleep(30)
 
-      cons.printf("btcx $ ")
-      val line = cons.readLine()
+      Console.printf("btcx $ ")
+      val line = Console.readLine()
       if (!line.trim.isEmpty) {
         val command = line.split(" ")
         try {
           env.commands.get(command.head) match {
             case Some(cmd) => cmd.execute(env, command.tail)
-            case _ => cons.printf("Invalid command: %s\n", command.head)
+            case _ => Console.printf("Invalid command: %s\n", command.head)
           }
         } catch {
           case e: RuntimeException => e.printStackTrace()
@@ -103,7 +100,6 @@ case class ConsoleEnvironment(commandBus: ActorRef) {
     new DepositMoneyCmd(),
     //   new ListAccountsCmd(),
     new OpenAccountCmd(),
-    new CreateOrderBookCmd(),
     new BuyCmd(),
     new SellCmd(),
     new ExitCmd())
@@ -170,18 +166,11 @@ class DepositMoneyCmd extends ConsoleCommand {
   }
 }
 
-class CreateOrderBookCmd extends ConsoleCommand {
-  override def cmdString = "createOrderBook"
-
-  override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    env.commandBus ! CreateOrderBook(OrderBookId(args(0)), CurrencyUnit(args(1)))
-  }
-}
-
 class BuyCmd extends ConsoleCommand {
   override def cmdString = "buy"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
+    for (i <- 0 until 10000) {
     env.commandBus ! ProcessOrder(OrderBookId("BTCEUR"), TransactionId(),
       LimitOrder(OrderId(),
         new DateTime(),
@@ -191,7 +180,7 @@ class BuyCmd extends ConsoleCommand {
         Buy,
         AccountId(args(3) + "-EUR"),
         AccountId(args(3) + "-BTC")))
-
+    }
   }
 }
 

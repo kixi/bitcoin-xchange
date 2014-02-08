@@ -41,17 +41,11 @@ case class OrderBookId(id: String) extends Identity
 
 class OrderBookFactory extends AggregateFactory[OrderBook, OrderBookEvent, OrderBookId] {
 
-  def create(id: OrderBookId, currency: CurrencyUnit) = applyEvent(OrderBookCreated(id, currency))
+  def create(id: OrderBookId, currency: CurrencyUnit) = ???
 
-  def applyEvent(e: OrderBookEvent) = e match {
-    case e: OrderBookCreated => OrderBook(
-      id = e.id,
-      currency = e.currency,
-      referencePrice = Money(0, e.currency),
-      currentBid = Money(0, e.currency),
-      currentAsk = Money(0, e.currency))
-  }
+  def applyEvent(e: OrderBookEvent) = ???
 }
+
 object OrderOrdering extends Ordering[Order] {
   def compare(o1: Order, o2: Order) = {
     if (o1.id == o2.id)
@@ -65,6 +59,18 @@ object OrderOrdering extends Ordering[Order] {
     }
   }
 }
+
+object OrderBook {
+  def apply(id: OrderBookId, currency: CurrencyUnit) ={
+    new OrderBook(
+      id = id,
+      currency = currency,
+      referencePrice = Money(0, currency),
+      currentAsk = Money(0, currency),
+      currentBid = Money(0, currency))
+  }
+}
+
 case class OrderBook(
                       uncommittedEventsReverse: List[OrderBookEvent] = Nil,
                       version: Int = 0,

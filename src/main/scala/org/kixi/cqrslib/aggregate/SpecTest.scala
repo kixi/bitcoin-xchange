@@ -40,6 +40,12 @@ trait SpecTest[AR <: AggregateRoot[AR, E, I], ARF <: AggregateFactory[AR, E, I],
     aggregate = factory.restoreFromHistory(f)
   }
 
+  def given(agg: AR)(f: => List[E]) {
+    aggregate = f.foldLeft(agg){
+      (a, e) => a.applyEvent(e)
+    }
+  }
+
   def when(executeCommand: AR => AR) {
     try {
       aggregate = executeCommand(aggregate)

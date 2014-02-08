@@ -32,7 +32,6 @@ package org.kixi.myeventstore
 
 
 import akka.actor.{Props, ActorLogging, Actor, ActorRef}
-import eventstore.StreamEventAppeared
 
 
 case class SubscribeMsg(subscriber: ActorRef, filter: Any => Boolean)
@@ -62,12 +61,5 @@ object GYEventStoreHandler {
 }
 
 class GYEventStoreHandler(eventHandler: ActorRef) extends Actor with ActorLogging {
-  def receive = {
-    case msg: StreamEventAppeared =>
-      try {
-        eventHandler ! JavaSerializer.readObject(msg.event.event.data.data.value.toArray)
-      } catch {
-        case e: Throwable => log.warning(s"Unable to process message $msg", e)
-      }
-  }
+  def receive : Receive = ???
 }
