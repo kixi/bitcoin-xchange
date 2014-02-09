@@ -59,7 +59,7 @@ object XCConsole{
     log.info("Starting bitcoin-exchange console ...")
 
     ServiceEnvironment.buildEnvironment()
-   // ServiceEnvironment.handler ! SubscribeMsg(ServiceEnvironment.system.actorOf(Props(new LoggingProjection()), "logging-projection"), (x) => true)
+   ServiceEnvironment.handler ! SubscribeMsg(ServiceEnvironment.system.actorOf(Props(new LoggingProjection()), "logging-projection"), (x) => true)
 
     val env = ConsoleEnvironment.buildEnvironment
 
@@ -76,8 +76,6 @@ object XCConsole{
         for(cmd <- env.commands.get("deposit")) cmd.execute(env, "2-BTC 100 BTC".split(" "))
      */
     while (true) {
-      Thread.sleep(30)
-
       Console.printf("btcx $ ")
       val line = Console.readLine()
       if (!line.trim.isEmpty) {
@@ -170,7 +168,6 @@ class BuyCmd extends ConsoleCommand {
   override def cmdString = "buy"
 
   override def execute(env: ConsoleEnvironment, args: Array[String]) {
-    for (i <- 0 until 10000) {
     env.commandBus ! ProcessOrder(OrderBookId("BTCEUR"), TransactionId(),
       LimitOrder(OrderId(),
         new DateTime(),
@@ -180,7 +177,6 @@ class BuyCmd extends ConsoleCommand {
         Buy,
         AccountId(args(3) + "-EUR"),
         AccountId(args(3) + "-BTC")))
-    }
   }
 }
 

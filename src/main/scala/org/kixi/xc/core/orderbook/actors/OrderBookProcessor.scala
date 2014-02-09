@@ -32,7 +32,6 @@ package org.kixi.xc.core.orderbook.actors
 
 import akka.persistence.{EventsourcedProcessor, Persistent, Processor}
 import org.kixi.xc.core.orderbook.domain.{OrderBookEvent, OrderBookCommand, OrderBookId, OrderBook}
-import akka.actor.Actor.Receive
 import org.kixi.xc.core.common.CurrencyUnit
 import akka.actor.{ActorLogging, Actor, Props, ActorRef}
 
@@ -52,16 +51,14 @@ class OrderBookService(eventPublisher: ActorRef) extends Actor with ActorLogging
   }
 
   private def createActor(orderbookId: OrderBookId) = {
-    val actor = context.actorOf(OrderBookProcessor.props(orderbookId, eventPublisher), orderbookId.id)
-    actor
+    context.actorOf(OrderBookProcessor.props(orderbookId, eventPublisher), orderbookId.id)
   }
-}/**
- * Created by centos on 2/6/14.
- */
+}
 
 object OrderBookProcessor {
   def props(orderbookId: OrderBookId, eventPublisher: ActorRef) = Props(classOf[OrderBookProcessor], orderbookId, eventPublisher)
 }
+
 class OrderBookProcessor(orderbookId: OrderBookId, eventPublisher: ActorRef) extends EventsourcedProcessor {
 
   var orderBook: OrderBook = OrderBook(orderbookId, CurrencyUnit("EUR"))
@@ -70,7 +67,7 @@ class OrderBookProcessor(orderbookId: OrderBookId, eventPublisher: ActorRef) ext
 
   def receiveRecover : Receive = {
     case evt: OrderBookEvent =>
-      orderBook = orderBook.applyEvent(evt)
+      orderBook = orderBook.applyEvent(evt).markCommitted
   }
 
   def receiveCommand : Receive = {
@@ -78,10 +75,26 @@ class OrderBookProcessor(orderbookId: OrderBookId, eventPublisher: ActorRef) ext
       val orderBookUncommitted = orderBook.process(msg)
       persist(orderBookUncommitted.uncommittedEventsReverse.reverse) {
         event => eventPublisher ! event
-//        context.system.eventStream.publish(event)
       }
       orderBook = orderBookUncommitted.markCommitted
   }
 }
 
+
+object OrderBookActor{
+  def props(orderbookId: OrderBookId, eventPublisher: ActorRef) = Props(classOf[OrderBookActor], orderbookId, eventPublisher)
+}
+class OrderBookActor(orderbookId: OrderBookId, eventPublisher: ActorRef) extends Actor {
+
+  var orderBook: OrderBook = OrderBook(orderbookId, CurrencyUnit("EUR"))
+
+  def receive: Receive = {
+    case msg: OrderBookCommand =>
+      val orderBookUncommitted = orderBook.process(msg)
+      orderBookUncommitted.uncommittedEventsReverse.reverse.foreach(
+        event => eventPublisher ! event
+      )
+      orderBook = orderBookUncommitted.markCommitted
+  }
+}
 
