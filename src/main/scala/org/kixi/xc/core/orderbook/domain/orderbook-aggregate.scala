@@ -122,7 +122,7 @@ case class OrderBook(
 
   private def clearExpiredOrders(orders: TreeSet[Order]): OrderBook = {
     var this0 = this
-// to slow!!!
+// too slow!!!
 //    for (order <- orders if order.expired) {
 //      this0 = this0.applyEvent(OrderExpired(id, order))
 //    }

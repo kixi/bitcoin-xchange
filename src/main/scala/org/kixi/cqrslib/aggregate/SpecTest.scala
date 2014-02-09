@@ -44,6 +44,7 @@ trait SpecTest[AR <: AggregateRoot[AR, E, I], ARF <: AggregateFactory[AR, E, I],
     aggregate = f.foldLeft(agg){
       (a, e) => a.applyEvent(e)
     }
+    aggregate = aggregate.markCommitted
   }
 
   def when(executeCommand: AR => AR) {
