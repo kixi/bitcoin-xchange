@@ -32,7 +32,7 @@ package org.kixi.xc.core.orderbook.actors
 
 import akka.persistence.{EventsourcedProcessor, Persistent, Processor}
 import org.kixi.xc.core.orderbook.domain.{OrderBookEvent, OrderBookCommand, OrderBookId, OrderBook}
-import org.kixi.xc.core.common.CurrencyUnit
+import org.kixi.xc.core.common.{CommandFailed, DomainException, CurrencyUnit}
 import akka.actor.{ActorLogging, Actor, Props, ActorRef}
 
 object OrderBookService {
@@ -59,7 +59,7 @@ object OrderBookProcessor {
   def props(orderbookId: OrderBookId, eventPublisher: ActorRef) = Props(classOf[OrderBookProcessor], orderbookId, eventPublisher)
 }
 
-class OrderBookProcessor(orderbookId: OrderBookId, eventPublisher: ActorRef) extends EventsourcedProcessor {
+class OrderBookProcessor(orderbookId: OrderBookId, eventPublisher: ActorRef) extends EventsourcedProcessor with ActorLogging {
 
   var orderBook: OrderBook = OrderBook(orderbookId, CurrencyUnit("EUR"))
 
@@ -72,11 +72,17 @@ class OrderBookProcessor(orderbookId: OrderBookId, eventPublisher: ActorRef) ext
 
   def receiveCommand : Receive = {
     case msg: OrderBookCommand =>
-      val orderBookUncommitted = orderBook.process(msg)
-      persist(orderBookUncommitted.uncommittedEventsReverse.reverse) {
-        event => eventPublisher ! event
+      try {
+        val orderBookUncommitted = orderBook.process(msg)
+        persist(orderBookUncommitted.uncommittedEventsReverse.reverse) {
+          event => eventPublisher ! event
+        }
+        orderBook = orderBookUncommitted.markCommitted
+      } catch {
+        case e: DomainException =>
+          log.error(s"$processorId", e)
+          eventPublisher ! CommandFailed(msg, processorId, e)
       }
-      orderBook = orderBookUncommitted.markCommitted
   }
 }
 

@@ -30,16 +30,21 @@
 
 package org.kixi.xc.core.common
 
-case class InsufficientFundsException(msg: String) extends RuntimeException(msg)
+class DomainException(msg: String) extends Exception(msg)
 
-case class InvalidWithdrawalException(msg: String) extends RuntimeException(msg)
+case class InsufficientFundsException(msg: String) extends DomainException(msg)
 
-case class InvalidAmountException(msg: String) extends RuntimeException(msg)
+case class InvalidWithdrawalException(msg: String) extends DomainException(msg)
 
-case class InvalidCurrencyException(msg: String) extends RuntimeException(msg)
+case class InvalidAmountException(msg: String) extends DomainException(msg)
 
-case class UnhandledEventException(msg: String) extends RuntimeException(msg)
+case class InvalidCurrencyException(msg: String) extends DomainException(msg)
 
-case class AggregateNotFoundException(msg: String) extends RuntimeException(msg)
+case class UnhandledEventException(msg: String) extends DomainException(msg)
 
-case class OrderExpiredException(msg: String) extends RuntimeException(msg)
+case class AggregateNotFoundException(msg: String) extends DomainException(msg)
+
+case class OrderExpiredException(msg: String) extends DomainException(msg)
+
+
+case class CommandFailed(command: Any, processor: String, e: Throwable)
